@@ -55,8 +55,9 @@ The function tools included with this request execute in the user's active Obsid
             : `${this.systemPrompt}\n\n${this.userInstruction}`;
 
         const compatibilityMode = this.settingsService.settings.openClawCompatibilityMode === true;
+        const endpoint = this.openClawEndpoint();
         const requestBody = {
-            model: this.openClawModel(),
+            model: endpoint.model,
             instructions: systemPrompt,
             input: input,
             tools: tools,
@@ -65,11 +66,11 @@ The function tools included with this request execute in the user's active Obsid
         };
 
         const headers = {
-            "Authorization": `Bearer ${this.apiKey}`,
+            "Authorization": `Bearer ${endpoint.apiKey}`,
             "Content-Type": "application/json"
         };
 
-        const url = this.settingsService.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses";
+        const url = endpoint.url;
 
         if (compatibilityMode) {
             yield* this.nonStreamingRequest(url, requestBody, headers);
@@ -164,19 +165,51 @@ The function tools included with this request execute in the user's active Obsid
         return chunks;
     }
 
-    private openClawModel(): string {
-        const mainModel = this.settingsService.settings.openClawModel?.trim() || "openclaw/default";
-
+    private openClawEndpoint(): { url: string; model: string; apiKey: string } {
+        let kind: "main" | "planning" | "quickAction";
         switch (this.agentType) {
             case AgentType.Planning:
             case AgentType.Orchestration:
-                return this.settingsService.settings.openClawPlanningModel?.trim() || mainModel;
+                kind = "planning";
+                break;
             case AgentType.QuickAction:
-                return this.settingsService.settings.openClawQuickActionModel?.trim() || mainModel;
+                kind = "quickAction";
+                break;
             case AgentType.Main:
             case AgentType.Execution:
-                return mainModel;
+                kind = "main";
+                break;
         }
+
+        // Retain compatibility with partially mocked/legacy settings services.
+        if (typeof this.settingsService.getOpenClawSelection !== "function") {
+            const mainModel = this.settingsService.settings.openClawModel?.trim() || "openclaw/default";
+            const model = kind === "planning"
+                ? this.settingsService.settings.openClawPlanningModel?.trim() || mainModel
+                : kind === "quickAction"
+                    ? this.settingsService.settings.openClawQuickActionModel?.trim() || mainModel
+                    : mainModel;
+            return {
+                url: this.settingsService.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses",
+                model,
+                apiKey: this.apiKey
+            };
+        }
+
+        const selection = this.settingsService.getOpenClawSelection(kind);
+        const provider = this.settingsService.getOpenClawProvider(selection);
+        if (!selection || !provider) {
+            return {
+                url: this.settingsService.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses",
+                model: this.settingsService.settings.openClawModel?.trim() || "openclaw/default",
+                apiKey: this.apiKey
+            };
+        }
+        return {
+            url: this.settingsService.getOpenClawResponsesUrl(provider),
+            model: selection.modelId,
+            apiKey: provider.apiKey
+        };
     }
 
     protected parseStreamChunk(chunk: string): IStreamChunk {

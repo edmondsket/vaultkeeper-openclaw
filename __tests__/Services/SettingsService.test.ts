@@ -39,7 +39,38 @@ describe('SettingsService', () => {
             expect(settingsService.settings.userInstruction).toBe('');
             expect(settingsService.settings.searchResultsLimit).toBe(30);
             expect(settingsService.settings.snippetSizeLimit).toBe(100);
+			expect(settingsService.settings.openClawProviders?.[0]).toMatchObject({
+				name: 'OpenClaw',
+				baseUrl: 'http://127.0.0.1:18789/v1/responses',
+				models: ['openclaw/default']
+			});
         });
+
+		it('migrates legacy OpenClaw model IDs and token into a provider', () => {
+			settingsService = new SettingsService({
+				openClawResponsesUrl: 'https://gateway.example/v1/responses',
+				openClawModel: 'main-model',
+				openClawPlanningModel: 'plan-model',
+				openClawQuickActionModel: 'fast-model',
+				apiKeys: { claude: '', openai: 'gateway-token', gemini: '', mistral: '' }
+			});
+
+			expect(settingsService.settings.openClawProviders?.[0]).toMatchObject({
+				baseUrl: 'https://gateway.example/v1/responses',
+				apiKey: 'gateway-token',
+				models: ['main-model', 'plan-model', 'fast-model']
+			});
+			expect(settingsService.getOpenClawSelection('planning')?.modelId).toBe('plan-model');
+			expect(settingsService.getOpenClawSelection('quickAction')?.modelId).toBe('fast-model');
+		});
+
+		it('normalizes provider base URLs to a Responses endpoint', () => {
+			settingsService = new SettingsService({});
+			const provider = { id: 'x', name: 'X', apiKey: '', models: ['m'], baseUrl: 'https://relay.example/v1/' };
+			expect(settingsService.getOpenClawResponsesUrl(provider)).toBe('https://relay.example/v1/responses');
+			provider.baseUrl = 'https://relay.example';
+			expect(settingsService.getOpenClawResponsesUrl(provider)).toBe('https://relay.example/v1/responses');
+		});
 
         it('should merge loaded settings with defaults', () => {
             const loadedSettings: Partial<IVaultkeeperAISettings> = {

@@ -30,6 +30,10 @@ const DEFAULT_SETTINGS: IVaultkeeperAISettings = {
     openClawPlanningModel: "",
     openClawQuickActionModel: "",
     openClawCompatibilityMode: true,
+    openClawProviders: [],
+    openClawMainSelection: undefined,
+    openClawPlanningSelection: undefined,
+    openClawQuickActionSelection: undefined,
     
     apiKeys: {
         claude: "",
@@ -71,6 +75,10 @@ export interface IVaultkeeperAISettings {
     openClawPlanningModel?: string;
     openClawQuickActionModel?: string;
     openClawCompatibilityMode?: boolean;
+    openClawProviders?: IOpenClawProvider[];
+    openClawMainSelection?: IOpenClawModelSelection;
+    openClawPlanningSelection?: IOpenClawModelSelection;
+    openClawQuickActionSelection?: IOpenClawModelSelection;
 
     apiKeys: {
         claude: string;
@@ -95,6 +103,19 @@ export interface IVaultkeeperAISettings {
     hideDrawerElements: boolean;
 }
 
+export interface IOpenClawProvider {
+    id: string;
+    name: string;
+    baseUrl: string;
+    apiKey: string;
+    models: string[];
+}
+
+export interface IOpenClawModelSelection {
+    providerId: string;
+    modelId: string;
+}
+
 type SettingKey = keyof IVaultkeeperAISettings;
 type SettingsChangedCallback = ((changedKeys: SettingKey[]) => void) | ((changedKeys: SettingKey[]) => Promise<void>);
 
@@ -117,6 +138,7 @@ export class SettingsService {
             migratedSettings.provider = fromModel(migratedSettings.model);
         }
         this.settings = Object.assign({}, DEFAULT_SETTINGS, migratedSettings);
+        this.migrateOpenClawProviders();
         this.settingsSnapshot = JSON.stringify(this.settings);
         this.ensureValidModels();
     }
@@ -170,6 +192,77 @@ export class SettingsService {
                 await this.updateSettings(settings => settings.apiKeys.mistral = key);
                 break;
         }
+    }
+
+    public getOpenClawProvider(selection?: IOpenClawModelSelection): IOpenClawProvider | undefined {
+        const providers = this.settings.openClawProviders ?? [];
+        return providers.find(provider => provider.id === selection?.providerId) ?? providers[0];
+    }
+
+    public getOpenClawSelection(kind: "main" | "planning" | "quickAction"): IOpenClawModelSelection | undefined {
+        const main = this.validOpenClawSelection(this.settings.openClawMainSelection)
+            ?? this.firstOpenClawSelection();
+        if (kind === "main") {
+            return main;
+        }
+
+        const selected = kind === "planning"
+            ? this.settings.openClawPlanningSelection
+            : this.settings.openClawQuickActionSelection;
+        return this.validOpenClawSelection(selected) ?? main;
+    }
+
+    public getOpenClawResponsesUrl(provider: IOpenClawProvider): string {
+        const value = provider.baseUrl.trim().replace(/\/+$/, "");
+        if (value.endsWith("/responses")) {
+            return value;
+        }
+        if (value.endsWith("/v1")) {
+            return `${value}/responses`;
+        }
+        return `${value}/v1/responses`;
+    }
+
+    private migrateOpenClawProviders(): void {
+        if (Array.isArray(this.settings.openClawProviders) && this.settings.openClawProviders.length > 0) {
+            return;
+        }
+
+        const settings = this.settings as IVaultkeeperAISettings;
+
+        const models = Array.from(new Set([
+            this.settings.openClawModel?.trim() || "openclaw/default",
+            this.settings.openClawPlanningModel?.trim(),
+            this.settings.openClawQuickActionModel?.trim()
+        ].filter((model): model is string => Boolean(model))));
+        const provider: IOpenClawProvider = {
+            id: "openclaw-default",
+            name: "OpenClaw",
+            baseUrl: this.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses",
+            apiKey: this.settings.apiKeys?.openai ?? "",
+            models
+        };
+        settings.openClawProviders = [provider];
+        settings.openClawMainSelection = { providerId: provider.id, modelId: models[0] };
+        settings.openClawPlanningSelection = {
+            providerId: provider.id,
+            modelId: this.settings.openClawPlanningModel?.trim() || models[0]
+        };
+        settings.openClawQuickActionSelection = {
+            providerId: provider.id,
+            modelId: this.settings.openClawQuickActionModel?.trim() || models[0]
+        };
+    }
+
+    private validOpenClawSelection(selection?: IOpenClawModelSelection): IOpenClawModelSelection | undefined {
+        if (!selection) return undefined;
+        const provider = (this.settings.openClawProviders ?? []).find(item => item.id === selection.providerId);
+        return provider?.models.includes(selection.modelId) ? selection : undefined;
+    }
+
+    private firstOpenClawSelection(): IOpenClawModelSelection | undefined {
+        const provider = (this.settings.openClawProviders ?? []).find(item => item.models.length > 0);
+        return provider ? { providerId: provider.id, modelId: provider.models[0] } : undefined;
     }
 
     private async saveSettings() {

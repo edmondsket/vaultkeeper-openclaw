@@ -6,7 +6,7 @@ import { HelpModal } from "Modals/HelpModal";
 import { DropdownComponent, PluginSettingTab, Setting, ToggleComponent, setIcon, setTooltip } from "obsidian";
 import { Resolve } from "Services/DependencyService";
 import type { EventService } from "Services/EventService";
-import type { SettingsService } from "Services/SettingsService";
+import type { IOpenClawModelSelection, IOpenClawProvider, SettingsService } from "Services/SettingsService";
 import { Services } from "Services/Services";
 import { closePluginSettings } from "Helpers/Helpers";
 import type { MemoriesService } from "Services/MemoriesService";
@@ -21,6 +21,7 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 	private apiKeySetting: Setting | null = null;
 	private apiKeyInputEl: HTMLInputElement | null = null;
 	private fileDisclaimerSetting: Setting | null = null;
+	private mainModelDropdown: DropdownComponent | null = null;
 	private planningModelDropdown: DropdownComponent | null = null;
 	private quickActionModelDropdown: DropdownComponent | null = null;
 	private allowUpdatingMemoriesSetting: Setting | null = null;
@@ -43,56 +44,41 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName(Copy.SettingOpenClawUrl)
-			.setDesc(Copy.SettingOpenClawUrlDesc)
-			.addText(text => text
-				.setPlaceholder("http://127.0.0.1:18789/v1/responses")
-				.setValue(this.settingsService.settings.openClawResponsesUrl ?? "http://127.0.0.1:18789/v1/responses")
-				.onChange(async value => {
+			.setHeading()
+			.setName("Model providers")
+			.setDesc("Add Responses API providers. Each provider can use a different URL, token, and model list.");
+
+		for (const provider of this.settingsService.settings.openClawProviders ?? []) {
+			this.renderOpenClawProvider(containerEl, provider);
+		}
+
+		new Setting(containerEl)
+			.setName("Add provider")
+			.setDesc("Create another model provider or relay endpoint.")
+			.addButton(button => button
+				.setButtonText("Add provider")
+				.setCta()
+				.onClick(async () => {
 					await this.settingsService.updateSettings(settings => {
-						settings.openClawResponsesUrl = value.trim();
+						(settings.openClawProviders ??= []).push({
+							id: this.newProviderId(),
+							name: `Provider ${settings.openClawProviders.length + 1}`,
+							baseUrl: "https://example.com/v1",
+							apiKey: "",
+							models: ["model-id"]
+						});
 					});
-					RegisterAiProvider();
+					this.display();
 				}));
 
 		new Setting(containerEl)
-			.setName(Copy.SettingOpenClawModel)
-			.setDesc(Copy.SettingOpenClawModelDesc)
-			.addText(text => text
-				.setPlaceholder("openclaw/default")
-				.setValue(this.settingsService.settings.openClawModel ?? "openclaw/default")
-				.onChange(async value => {
-					await this.settingsService.updateSettings(settings => {
-						settings.openClawModel = value.trim();
-					});
-					RegisterAiProvider();
-				}));
+			.setHeading()
+			.setName("Model assignments")
+			.setDesc("Choose any model from any configured provider for each job.");
 
-		new Setting(containerEl)
-			.setName(Copy.SettingOpenClawPlanningModel)
-			.setDesc(Copy.SettingOpenClawPlanningModelDesc)
-			.addText(text => text
-				.setPlaceholder("Leave empty to use the main model")
-				.setValue(this.settingsService.settings.openClawPlanningModel ?? "")
-				.onChange(async value => {
-					await this.settingsService.updateSettings(settings => {
-						settings.openClawPlanningModel = value.trim();
-					});
-					RegisterAiProvider();
-				}));
-
-		new Setting(containerEl)
-			.setName(Copy.SettingOpenClawQuickActionModel)
-			.setDesc(Copy.SettingOpenClawQuickActionModelDesc)
-			.addText(text => text
-				.setPlaceholder("Leave empty to use the main model")
-				.setValue(this.settingsService.settings.openClawQuickActionModel ?? "")
-				.onChange(async value => {
-					await this.settingsService.updateSettings(settings => {
-						settings.openClawQuickActionModel = value.trim();
-					});
-					RegisterAiProvider();
-				}));
+		this.renderOpenClawModelSelector(containerEl, "Main model", "Used for normal conversations and vault operations.", "main");
+		this.renderOpenClawModelSelector(containerEl, "Planning model", "Used to plan and orchestrate complex tasks.", "planning");
+		this.renderOpenClawModelSelector(containerEl, "Quick actions model", "Used for quick actions and conversation titles.", "quickAction");
 
 		new Setting(containerEl)
 			.setName(Copy.SettingOpenClawCompatibilityMode)
@@ -106,123 +92,6 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 					RegisterAiProvider();
 				}));
 
-		/* Model Selection Setting */
-		new Setting(containerEl)
-			.setName(Copy.SettingModel)
-			.setDesc(Copy.SettingModelDesc)
-			.addDropdown((dropdown) => {
-				this.populateModelDropdown(dropdown);
-				dropdown.setValue(this.settingsService.settings.model);
-				dropdown.onChange(async (value) => {
-					if (!isValidProviderModel(value)) {
-						return;
-					}
-					await this.settingsService.updateSettings(settings => {
-						settings.model = value;
-						settings.provider = fromModel(value);
-					});
-					if (this.apiKeyInputEl) {
-						this.apiKeyInputEl.value = this.settingsService.getApiKeyForCurrentModel();
-						this.highlightApiKey();
-					}
-					this.updateFileDisclaimer();
-					await this.updateModelDropdowns();
-					RegisterAiProvider();
-				});
-			});
-
-		/* Planning Model Selection Setting */
-		const currentProvider = fromModel(this.settingsService.settings.model);
-		const planningModelDescFragment = createFragment();
-		planningModelDescFragment.appendText(Copy.SettingPlanningModelDesc);
-		planningModelDescFragment.createEl("br");
-		planningModelDescFragment.createEl("br");
-		planningModelDescFragment.createSpan({ text: Copy.SettingPlanningModelTip, cls: "planning-model-description-tip" });
-		new Setting(containerEl)
-			.setName(Copy.SettingPlanningModel)
-			.setDesc(planningModelDescFragment)
-			.addDropdown((dropdown) => {
-				this.planningModelDropdown = dropdown;
-				this.populateModelDropdown(dropdown, currentProvider);
-				dropdown.setValue(this.settingsService.settings.planningModel);
-				dropdown.onChange(async (value) => {
-					if (!isValidProviderModel(value)) {
-						return;
-					}
-					await this.settingsService.updateSettings(settings => {
-						settings.planningModel = value;
-					});
-					RegisterAiProvider();
-				});
-			});
-
-		/* Quick Action Model Selection Setting */
-		new Setting(containerEl)
-			.setName(Copy.SettingQuickActionModel)
-			.setDesc(Copy.SettingQuickActionModelDesc)
-			.addDropdown((dropdown) => {
-				this.quickActionModelDropdown = dropdown;
-				this.populateModelDropdown(dropdown);
-				dropdown.setValue(this.settingsService.settings.quickActionModel);
-				dropdown.onChange(async (value) => {
-					if (!isValidProviderModel(value)) {
-						return;
-					}
-					await this.settingsService.updateSettings(settings => {
-						settings.quickActionModel = value;
-					});
-					RegisterAiProvider();
-				});
-			});
-
-		/* API Key Setting */
-		this.apiKeySetting = new Setting(containerEl)
-			.setName(Copy.SettingApiKey)
-			.setDesc(Copy.SettingApiKeyDesc)
-			.addText(text => {
-				text.setPlaceholder(Copy.PlaceholderEnterApiKey)
-					.setValue(this.settingsService.getApiKeyForCurrentModel())
-					.onChange(async (value) => {
-						await this.settingsService.updateSettings(async settings => {
-							await this.settingsService.setApiKeyForProvider(fromModel(settings.model), value);
-						});
-						this.highlightApiKey();
-						RegisterAiProvider();
-					});
-				text.inputEl.type = "password";
-				this.apiKeyInputEl = text.inputEl;
-			})
-			.addExtraButton(button => {
-				button
-					.setTooltip(Copy.TooltipShowApiKey)
-					.onClick(() => {
-						if (this.apiKeyInputEl && this.apiKeyInputEl.type === "password") {
-							this.apiKeyInputEl.type = "text";
-							setIcon(button.extraSettingsEl, "eye-off");
-							setTooltip(button.extraSettingsEl, Copy.TooltipHideApiKey);
-						} else if (this.apiKeyInputEl) {
-							this.apiKeyInputEl.type = "password";
-							setIcon(button.extraSettingsEl, "eye");
-							setTooltip(button.extraSettingsEl, Copy.TooltipShowApiKey);
-						}
-					});
-				setIcon(button.extraSettingsEl, "eye");
-			});
-		this.highlightApiKey();
-
-		/* Model files API disclaimer */
-		this.fileDisclaimerSetting = new Setting(containerEl)
-		.setDesc(Copy.SettingFileMonitoringClaude)
-		.addExtraButton(button => {
-			button
-				.setTooltip(Copy.TooltipLearnMoreFileMonitoring)
-				.onClick(() => {
-					const modal = Resolve<HelpModal>(Services.HelpModal);
-					modal.open(7); // Opens HelpModal to "Uploaded Files" (topic 7)
-				});
-			setIcon(button.extraSettingsEl, "help-circle");
-		});
-		this.updateFileDisclaimer();
 
 		/* Exclusions Setting */
 		new Setting(containerEl)
@@ -396,6 +265,161 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 						});
 					});
 			});
+	}
+
+	private renderOpenClawProvider(containerEl: HTMLElement, provider: IOpenClawProvider): void {
+		new Setting(containerEl)
+			.setName("Provider name")
+			.setDesc("A label used to group this provider's models in the selectors.")
+			.addText(text => text
+				.setPlaceholder("My provider")
+				.setValue(provider.name)
+				.onChange(async value => {
+					await this.updateOpenClawProvider(provider.id, item => item.name = value.trim());
+					this.refreshOpenClawModelDropdowns();
+				}))
+			.addExtraButton(button => {
+				button.setIcon("trash").setTooltip("Delete provider");
+				button.extraSettingsEl.toggleAttribute("disabled", (this.settingsService.settings.openClawProviders?.length ?? 0) <= 1);
+				button.onClick(async () => {
+					if ((this.settingsService.settings.openClawProviders?.length ?? 0) <= 1) return;
+					await this.settingsService.updateSettings(settings => {
+						settings.openClawProviders = (settings.openClawProviders ?? []).filter(item => item.id !== provider.id);
+					});
+					this.display();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("Base URL")
+			.setDesc("Enter a base URL ending in /v1, or the complete /v1/responses URL.")
+			.addText(text => text
+				.setPlaceholder("https://example.com/v1")
+				.setValue(provider.baseUrl)
+				.onChange(async value => {
+					await this.updateOpenClawProvider(provider.id, item => item.baseUrl = value.trim());
+					RegisterAiProvider();
+				}));
+
+		let tokenInput: HTMLInputElement;
+		new Setting(containerEl)
+			.setName("API key / token")
+			.setDesc("Bearer token used only for this provider.")
+			.addText(text => {
+				text.setPlaceholder("Enter token")
+					.setValue(provider.apiKey)
+					.onChange(async value => {
+						await this.updateOpenClawProvider(provider.id, item => item.apiKey = value);
+						RegisterAiProvider();
+					});
+				text.inputEl.type = "password";
+				tokenInput = text.inputEl;
+			})
+			.addExtraButton(button => {
+				button.setIcon("eye").setTooltip("Show token").onClick(() => {
+					tokenInput.type = tokenInput.type === "password" ? "text" : "password";
+					setIcon(button.extraSettingsEl, tokenInput.type === "password" ? "eye" : "eye-off");
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("Model IDs")
+			.setDesc("One model ID per line. These values are sent to this provider exactly as entered.")
+			.addTextArea(text => {
+				text.setPlaceholder("model-a\nmodel-b")
+					.setValue(provider.models.join("\n"))
+					.onChange(async value => {
+						const models = Array.from(new Set(value.split("\n").map(item => item.trim()).filter(Boolean)));
+						await this.updateOpenClawProvider(provider.id, item => item.models = models);
+						this.refreshOpenClawModelDropdowns();
+					});
+				text.inputEl.rows = 3;
+			});
+	}
+
+	private renderOpenClawModelSelector(
+		containerEl: HTMLElement,
+		name: string,
+		description: string,
+		kind: "main" | "planning" | "quickAction"
+	): void {
+		new Setting(containerEl)
+			.setName(name)
+			.setDesc(description)
+			.addDropdown(dropdown => {
+				if (kind === "main") this.mainModelDropdown = dropdown;
+				if (kind === "planning") this.planningModelDropdown = dropdown;
+				if (kind === "quickAction") this.quickActionModelDropdown = dropdown;
+				this.populateOpenClawModelDropdown(dropdown);
+				const selection = this.settingsService.getOpenClawSelection(kind);
+				if (selection) dropdown.setValue(this.openClawSelectionKey(selection));
+				dropdown.onChange(async value => {
+					const selection = this.parseOpenClawSelectionKey(value);
+					if (!selection) return;
+					await this.settingsService.updateSettings(settings => {
+						if (kind === "main") settings.openClawMainSelection = selection;
+						if (kind === "planning") settings.openClawPlanningSelection = selection;
+						if (kind === "quickAction") settings.openClawQuickActionSelection = selection;
+					});
+					RegisterAiProvider();
+				});
+			});
+	}
+
+	private populateOpenClawModelDropdown(dropdown: DropdownComponent): void {
+		dropdown.selectEl.empty();
+		let modelCount = 0;
+		for (const provider of this.settingsService.settings.openClawProviders ?? []) {
+			if (provider.models.length === 0) continue;
+			const group = dropdown.selectEl.createEl("optgroup", { attr: { label: provider.name || "Unnamed provider" } });
+			for (const model of provider.models) {
+				const selection = { providerId: provider.id, modelId: model };
+				group.createEl("option", { value: this.openClawSelectionKey(selection), text: model });
+				modelCount++;
+			}
+		}
+		if (modelCount === 0) {
+			dropdown.addOption("", "No models configured");
+			dropdown.setDisabled(true);
+		}
+	}
+
+	private refreshOpenClawModelDropdowns(): void {
+		const dropdowns: Array<[DropdownComponent | null, "main" | "planning" | "quickAction"]> = [
+			[this.mainModelDropdown, "main"],
+			[this.planningModelDropdown, "planning"],
+			[this.quickActionModelDropdown, "quickAction"]
+		];
+		for (const [dropdown, kind] of dropdowns) {
+			if (!dropdown) continue;
+			this.populateOpenClawModelDropdown(dropdown);
+			const selection = this.settingsService.getOpenClawSelection(kind);
+			if (selection) dropdown.setValue(this.openClawSelectionKey(selection));
+		}
+	}
+
+	private async updateOpenClawProvider(id: string, update: (provider: IOpenClawProvider) => void): Promise<void> {
+		await this.settingsService.updateSettings(settings => {
+			const provider = (settings.openClawProviders ?? []).find(item => item.id === id);
+			if (provider) update(provider);
+		});
+	}
+
+	private openClawSelectionKey(selection: IOpenClawModelSelection): string {
+		return `${encodeURIComponent(selection.providerId)}|${encodeURIComponent(selection.modelId)}`;
+	}
+
+	private parseOpenClawSelectionKey(value: string): IOpenClawModelSelection | undefined {
+		const separator = value.indexOf("|");
+		if (separator < 0) return undefined;
+		return {
+			providerId: decodeURIComponent(value.slice(0, separator)),
+			modelId: decodeURIComponent(value.slice(separator + 1))
+		};
+	}
+
+	private newProviderId(): string {
+		return globalThis.crypto?.randomUUID?.() ?? `provider-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 	}
 
 	private populateModelDropdown(dropdown: DropdownComponent, providerFilter?: AIProvider): void {

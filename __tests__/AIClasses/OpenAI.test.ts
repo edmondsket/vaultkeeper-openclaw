@@ -1025,6 +1025,37 @@ describe('OpenAI', () => {
             expect(mockStreamingService.streamRequest.mock.calls[0][1].model).toBe('my-fast-model');
         });
 
+        it('should route a selected model through its own provider URL and token', async () => {
+            const selections = {
+                main: { providerId: 'provider-a', modelId: 'model-a' },
+                planning: { providerId: 'provider-b', modelId: 'planner-b' },
+                quickAction: { providerId: 'provider-a', modelId: 'fast-a' }
+            };
+            const providers: Record<string, any> = {
+                'provider-a': { id: 'provider-a', name: 'A', baseUrl: 'https://a.example/v1', apiKey: 'token-a', models: ['model-a', 'fast-a'] },
+                'provider-b': { id: 'provider-b', name: 'B', baseUrl: 'https://b.example/v1', apiKey: 'token-b', models: ['planner-b'] }
+            };
+            mockSettingsService.getOpenClawSelection = vi.fn((kind: keyof typeof selections) => selections[kind]);
+            mockSettingsService.getOpenClawProvider = vi.fn((selection: any) => providers[selection.providerId]);
+            mockSettingsService.getOpenClawResponsesUrl = vi.fn((provider: any) => `${provider.baseUrl}/responses`);
+            mockStreamingService.streamRequest.mockImplementation(async function* () {
+                yield { content: 'done', isComplete: true };
+            });
+
+            const conversation = new Conversation();
+            conversation.contents.push(new ConversationContent({ role: Role.User, content: 'Plan this' }));
+            openai.agentType = AgentType.Planning;
+            for await (const chunk of openai.streamRequest(conversation)) {}
+
+            expect(mockStreamingService.streamRequest).toHaveBeenCalledWith(
+                'https://b.example/v1/responses',
+                expect.objectContaining({ model: 'planner-b' }),
+                expect.any(Function),
+                expect.objectContaining({ Authorization: 'Bearer token-b' }),
+                expect.any(Function)
+            );
+        });
+
         it('should use requestUrl with a non-streaming body in compatibility mode', async () => {
             mockSettingsService.settings.openClawCompatibilityMode = true;
             vi.mocked(requestUrl).mockResolvedValueOnce({

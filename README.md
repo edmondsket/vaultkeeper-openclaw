@@ -53,15 +53,15 @@ Copy `manifest.json`, `main.js`, and `styles.css` into `.obsidian/plugins/vaultk
    openclaw gateway restart
    ```
 
-2. In plugin settings, set:
+2. In plugin settings, configure a model provider:
 
-   - **OpenClaw Responses URL**: `http://127.0.0.1:18789/v1/responses` for a desktop running OpenClaw locally. Android must use a reachable HTTPS/Tailscale URL; the phone's `127.0.0.1` is the phone itself.
-   - **OpenClaw Model**: any model ID accepted by the endpoint, such as `openclaw/default` or `openclaw/<agentId>`.
-   - **Planning / Quick Action Model IDs**: optional overrides; leave empty to reuse the main model.
-   - **Gateway Token**: the Gateway token/password used for Bearer authentication.
+   - **Provider name**: any friendly name, such as `OpenClaw` or the name of a relay service.
+   - **Base URL**: `http://127.0.0.1:18789/v1` (or the complete `/v1/responses` URL) for a desktop running OpenClaw locally. Android must use a reachable HTTPS/Tailscale URL; the phone's `127.0.0.1` is the phone itself.
+   - **API key / token**: the token used for Bearer authentication by this provider.
+   - **Model IDs**: one accepted model ID per line, such as `openclaw/default` or `openclaw/<agentId>`.
    - **Non-streaming Compatibility Mode**: leave enabled when OpenClaw is exposed through Tailscale Serve or another endpoint without browser CORS headers. It uses Obsidian `requestUrl()` and remains compatible with desktop and mobile, but displays each response after it completes.
 
-3. Leave the model dropdown on an OpenClaw/OpenAI entry. The custom OpenClaw model above is what is sent to the Gateway.
+3. Assign a model to **Main model**, **Planning model**, and **Quick actions model**. Each assignment may use a different provider.
 
 4. Open the Vaultkeeper icon and choose Read-only, Edit, or Planning mode.
 
@@ -74,33 +74,9 @@ Copy `manifest.json`, `main.js`, and `styles.css` into `.obsidian/plugins/vaultk
 
 ### Switching Between Models
 
-The plugin supports multiple AI models:
+Add any number of Responses API-compatible providers. Each provider stores its own name, Base URL, Bearer token, and model ID list. All configured models appear in grouped dropdowns for the main, planning, and quick-action roles, and each request is routed through the selected model's provider.
 
-**Claude (Anthropic)**
-
-- Claude Sonnet 4.6 ⚡ (Recommended)
-- Claude Sonnet 4.5, 4
-- Claude Opus 4.6, 4.5, 4.1, 4
-- Claude Haiku 4.5
-
-**Gemini (Google)**
-
-- Gemini 3.1 Pro Preview, 3 Pro Preview, 3 Flash Preview
-- Gemini 2.5 Flash, Pro
-- Gemini 2.5 Flash Lite
-
-**OpenAI**
-
-- GPT-5.2 (Instant, Thinking, Pro)
-- GPT-5.1, GPT-5 (Mini, Nano)
-
-**Mistral**
-
-- Mistral Large
-- Mistral Medium
-- Mistral Small
-
-Switch models anytime in the settings without losing your conversation context.
+Settings from versions before 0.5.0 are automatically migrated into an `OpenClaw` provider.
 
 ### Chat Modes
 
