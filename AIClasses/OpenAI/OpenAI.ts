@@ -17,6 +17,7 @@ import { parseToolCall, parseFunctionResponse } from "Helpers/ResponseHelper";
 import { AIToolUsageMode } from "Enums/AIToolUsageMode";
 import { replaceCopy } from 'Helpers/Helpers';
 import { Copy } from "Enums/Copy";
+import { AgentType } from "Enums/AgentType";
 
 export class OpenAI extends BaseAIClass {
 
@@ -46,7 +47,7 @@ export class OpenAI extends BaseAIClass {
         const tools = this.getTools();
 
         const requestBody = {
-            model: this.settingsService.settings.openClawModel?.trim() || "openclaw/default",
+            model: this.openClawModel(),
             instructions: systemPrompt,
             input: input,
             tools: tools,
@@ -66,6 +67,21 @@ export class OpenAI extends BaseAIClass {
             headers,
             (error) => this.extractRetryDelay(error)
         );
+    }
+
+    private openClawModel(): string {
+        const mainModel = this.settingsService.settings.openClawModel?.trim() || "openclaw/default";
+
+        switch (this.agentType) {
+            case AgentType.Planning:
+            case AgentType.Orchestration:
+                return this.settingsService.settings.openClawPlanningModel?.trim() || mainModel;
+            case AgentType.QuickAction:
+                return this.settingsService.settings.openClawQuickActionModel?.trim() || mainModel;
+            case AgentType.Main:
+            case AgentType.Execution:
+                return mainModel;
+        }
     }
 
     protected parseStreamChunk(chunk: string): IStreamChunk {

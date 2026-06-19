@@ -56,7 +56,8 @@ Copy `manifest.json`, `main.js`, and `styles.css` into `.obsidian/plugins/vaultk
 2. In plugin settings, set:
 
    - **OpenClaw Responses URL**: `http://127.0.0.1:18789/v1/responses` for a desktop running OpenClaw locally. Android must use a reachable HTTPS/Tailscale URL; the phone's `127.0.0.1` is the phone itself.
-   - **OpenClaw Model**: `openclaw/default` or `openclaw/<agentId>`.
+   - **OpenClaw Model**: any model ID accepted by the endpoint, such as `openclaw/default` or `openclaw/<agentId>`.
+   - **Planning / Quick Action Model IDs**: optional overrides; leave empty to reuse the main model.
    - **Gateway Token**: the Gateway token/password used for Bearer authentication.
 
 3. Leave the model dropdown on an OpenClaw/OpenAI entry. The custom OpenClaw model above is what is sent to the Gateway.

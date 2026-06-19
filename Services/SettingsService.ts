@@ -27,6 +27,8 @@ const DEFAULT_SETTINGS: IVaultkeeperAISettings = {
 
     openClawResponsesUrl: "http://127.0.0.1:18789/v1/responses",
     openClawModel: "openclaw/default",
+    openClawPlanningModel: "",
+    openClawQuickActionModel: "",
     
     apiKeys: {
         claude: "",
@@ -65,6 +67,8 @@ export interface IVaultkeeperAISettings {
     /** Optional for compatibility with settings saved by upstream Vaultkeeper AI. */
     openClawResponsesUrl?: string;
     openClawModel?: string;
+    openClawPlanningModel?: string;
+    openClawQuickActionModel?: string;
 
     apiKeys: {
         claude: string;

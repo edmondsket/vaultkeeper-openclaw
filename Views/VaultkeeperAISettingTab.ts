@@ -68,6 +68,32 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 					RegisterAiProvider();
 				}));
 
+		new Setting(containerEl)
+			.setName(Copy.SettingOpenClawPlanningModel)
+			.setDesc(Copy.SettingOpenClawPlanningModelDesc)
+			.addText(text => text
+				.setPlaceholder("Leave empty to use the main model")
+				.setValue(this.settingsService.settings.openClawPlanningModel ?? "")
+				.onChange(async value => {
+					await this.settingsService.updateSettings(settings => {
+						settings.openClawPlanningModel = value.trim();
+					});
+					RegisterAiProvider();
+				}));
+
+		new Setting(containerEl)
+			.setName(Copy.SettingOpenClawQuickActionModel)
+			.setDesc(Copy.SettingOpenClawQuickActionModelDesc)
+			.addText(text => text
+				.setPlaceholder("Leave empty to use the main model")
+				.setValue(this.settingsService.settings.openClawQuickActionModel ?? "")
+				.onChange(async value => {
+					await this.settingsService.updateSettings(settings => {
+						settings.openClawQuickActionModel = value.trim();
+					});
+					RegisterAiProvider();
+				}));
+
 		/* Model Selection Setting */
 		new Setting(containerEl)
 			.setName(Copy.SettingModel)

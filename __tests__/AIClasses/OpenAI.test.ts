@@ -14,6 +14,7 @@ import { Exception } from '../../Helpers/Exception';
 import { AbortService } from '../../Services/AbortService';
 import { Copy } from 'Enums/Copy';
 import { replaceCopy } from 'Helpers/Helpers';
+import { AgentType } from '../../Enums/AgentType';
 
 describe('OpenAI', () => {
     let openai: OpenAI;
@@ -996,6 +997,27 @@ describe('OpenAI', () => {
             const webSearchTool = requestBody.tools.find((t: any) => t.type === 'web_search');
 
             expect(webSearchTool).toBeUndefined();
+        });
+
+        it('should allow custom model IDs for planning and quick actions', async () => {
+            mockSettingsService.settings.openClawModel = 'my-main-model';
+            mockSettingsService.settings.openClawPlanningModel = 'my-planning-model';
+            mockSettingsService.settings.openClawQuickActionModel = 'my-fast-model';
+            mockStreamingService.streamRequest.mockImplementation(async function* () {
+                yield { content: 'done', isComplete: true };
+            });
+
+            const conversation = new Conversation();
+            conversation.contents.push(new ConversationContent({ role: Role.User, content: 'Test' }));
+
+            openai.agentType = AgentType.Planning;
+            for await (const chunk of openai.streamRequest(conversation)) {}
+            expect(mockStreamingService.streamRequest.mock.calls[0][1].model).toBe('my-planning-model');
+
+            mockStreamingService.streamRequest.mockClear();
+            openai.agentType = AgentType.QuickAction;
+            for await (const chunk of openai.streamRequest(conversation)) {}
+            expect(mockStreamingService.streamRequest.mock.calls[0][1].model).toBe('my-fast-model');
         });
     });
 

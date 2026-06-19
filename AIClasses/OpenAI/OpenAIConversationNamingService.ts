@@ -19,7 +19,9 @@ export class OpenAIConversationNamingService implements IConversationNamingServi
         const settingsService = Resolve<SettingsService>(Services.SettingsService);
         this.apiKey = settingsService.getApiKeyForProvider(AIProvider.OpenAI);
         this.responsesUrl = settingsService.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses";
-        this.model = settingsService.settings.openClawModel?.trim() || "openclaw/default";
+        this.model = settingsService.settings.openClawQuickActionModel?.trim()
+            || settingsService.settings.openClawModel?.trim()
+            || "openclaw/default";
         this.abortService = Resolve<AbortService>(Services.AbortService);
     }
 
