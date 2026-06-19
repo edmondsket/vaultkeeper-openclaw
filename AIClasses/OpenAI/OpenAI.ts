@@ -239,6 +239,7 @@ export class OpenAI extends BaseAIClass {
                         // Add assistant text message if present
                         if (contentToExtract.trim() !== "") {
                             results.push({
+                                type: "message",
                                 role: content.role as "user" | "assistant",
                                 content: contentToExtract
                             });
@@ -260,6 +261,7 @@ export class OpenAI extends BaseAIClass {
                             : legacyText;
 
                         results.push({
+                            type: "message",
                             role: content.role as "user" | "assistant",
                             content: combinedContent
                         });
@@ -267,6 +269,7 @@ export class OpenAI extends BaseAIClass {
                 } else {
                     // Fall back to regular message if parsing fails
                     results.push({
+                        type: "message",
                         role: content.role as "user" | "assistant",
                         content: contentToExtract.trim() !== "" ? contentToExtract : "Error parsing function call"
                     });
@@ -286,6 +289,7 @@ export class OpenAI extends BaseAIClass {
                 for (const uploadError of uploadErrors) {
                     // OpenAI formatBinaryFiles returns array with role wrapper, so add as separate message
                     results.push({
+                        type: "message",
                         role: "user",
                         content: Exception.messageFrom(uploadError)
                     });
@@ -309,6 +313,7 @@ export class OpenAI extends BaseAIClass {
                         // No id (from Gemini or legacy) - convert to text message
                         const legacyText = this.convertFunctionResponseToText(parsedContent);
                         results.push({
+                            type: "message",
                             role: content.role as "user" | "assistant",
                             content: legacyText
                         });
@@ -316,6 +321,7 @@ export class OpenAI extends BaseAIClass {
                 } else {
                     // Fall back to regular user message if parsing fails
                     results.push({
+                        type: "message",
                         role: content.role as "user" | "assistant",
                         content: content.functionResponse
                     });
@@ -326,6 +332,7 @@ export class OpenAI extends BaseAIClass {
             // Case 4: Regular text message (user or assistant)
             if (contentToExtract.trim() !== "") {
                 results.push({
+                    type: "message",
                     role: content.role as "user" | "assistant",
                     content: contentToExtract
                 });
@@ -377,6 +384,7 @@ export class OpenAI extends BaseAIClass {
         }
 
         return JSON.stringify([{
+            type: "message",
             role: "user",
             content: contentBlocks
         }]);

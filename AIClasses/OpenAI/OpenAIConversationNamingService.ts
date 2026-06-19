@@ -32,6 +32,7 @@ export class OpenAIConversationNamingService implements IConversationNamingServi
                 instructions: NamePrompt,
                 input: [
                     {
+                        type: "message",
                         role: Role.User,
                         content: userPrompt
                     }

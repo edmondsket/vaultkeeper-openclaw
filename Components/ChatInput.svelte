@@ -46,6 +46,7 @@
 
   let inputDisplay: InputDisplay;
   let textareaElement: HTMLDivElement;
+  let inputContainerElement: HTMLDivElement;
   let userInstructionButton: HTMLButtonElement;
   let webSearchButton: HTMLButtonElement;
   let submitButton: HTMLButtonElement;
@@ -56,6 +57,8 @@
   let userInstructionAreaActive: boolean = false;
   let userInstructionActive: boolean = true;
   let stacked: boolean = false;
+  let compact: boolean = false;
+  let resizeObserver: ResizeObserver | null = null;
 
   let userRequest: string = "";
 
@@ -87,6 +90,9 @@
   onMount(async () => {
     userInstructionActive = (await aiPrompt.userInstruction()).trim() !== "";
     inputInitialHeight = textareaElement.innerHeight;
+    updateCompactLayout();
+    resizeObserver = new ResizeObserver(updateCompactLayout);
+    resizeObserver.observe(inputContainerElement);
   });
 
   onDestroy(() => {
@@ -95,7 +101,12 @@
     eventService.offref(rateLimitCountdownRef);
     settingsService.unsubscribe(settingsSubscription);
     stopCountdown();
+    resizeObserver?.disconnect();
   });
+
+  function updateCompactLayout() {
+    compact = inputContainerElement?.clientWidth < 620;
+  }
 
   function checkStacked() {
     // Mobile already uses the 'stacked' layout 
@@ -226,9 +237,9 @@
   }
 
   $: inputPlaceholder = (() => {
-    if (inputMode === InputMode.Question) return Copy.InputPlaceholderQuestion;
-    if (inputMode === InputMode.Diff) return Copy.InputPlaceholderDiff;
-    return Copy.InputPlaceholderNormal;
+    if (inputMode === InputMode.Question) return compact ? Copy.InputPlaceholderQuestionCompact : Copy.InputPlaceholderQuestion;
+    if (inputMode === InputMode.Diff) return compact ? Copy.InputPlaceholderDiffCompact : Copy.InputPlaceholderDiff;
+    return compact ? Copy.InputPlaceholderCompact : Copy.InputPlaceholderNormal;
   })();
 
   $: submitDisabled = (() => {
@@ -538,7 +549,7 @@
   }
 </script>
 
-<div id="input-container" class:stacked>
+<div id="input-container" class:stacked class:compact bind:this={inputContainerElement}>
   <div id="input-display-container" style:padding-top={attachments.length > 0 ? "var(--size-4-2)" : 0}>
     <InputDisplay bind:this={inputDisplay}/>
   </div>
@@ -882,4 +893,30 @@
     grid-row: 9;
     grid-column: 10;
   }
+
+  /* A desktop sidebar can be as narrow as a phone. ResizeObserver applies
+     the mobile arrangement based on the actual pane width, not platform. */
+  #input-container.compact {
+    grid-template-rows: auto auto auto auto auto var(--size-4-3) minmax(3.25rem, auto) var(--size-4-2) auto var(--size-4-3);
+    grid-template-columns: var(--size-4-3) auto var(--size-4-2) auto 1fr auto var(--size-4-2) auto var(--size-4-2) auto var(--size-4-3);
+  }
+
+  #input-container.compact #input-display-container,
+  #input-container.compact #input-attachments-container,
+  #input-container.compact #diff-controls-container,
+  #input-container.compact #input-search-results-container,
+  #input-container.compact #user-instruction-container,
+  #input-container.compact #chat-mode-selector-container,
+  #input-container.compact #input-field {
+    grid-column: 2 / 11;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  #input-container.compact #user-instruction-button { grid-row: 9; grid-column: 2; }
+  #input-container.compact #web-search-button { grid-row: 9; grid-column: 4; }
+  #input-container.compact #chat-attachment-button { grid-row: 9; grid-column: 6; }
+  #input-container.compact #chat-mode-button { grid-row: 9; grid-column: 8; }
+  #input-container.compact #submit-button { grid-row: 9; grid-column: 10; }
 </style>

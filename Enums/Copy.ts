@@ -116,6 +116,9 @@ export enum Copy {
     InputPlaceholderQuestion = "Provide an answer...",
     InputPlaceholderDiff = "Make a suggestion...",
     InputPlaceholderNormal = "Type a message...",
+    InputPlaceholderCompact = "Message…",
+    InputPlaceholderQuestionCompact = "Answer…",
+    InputPlaceholderDiffCompact = "Suggestion…",
 
     // Chat Input Button Labels
     ButtonCancel = "Cancel",

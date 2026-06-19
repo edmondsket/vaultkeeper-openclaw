@@ -100,6 +100,7 @@ export interface OpenAIToolTool {
 
 // Regular user/assistant message
 export interface ResponsesAPIMessageInput {
+    type: "message";
     role: "user" | "assistant";
     content: string;
 }

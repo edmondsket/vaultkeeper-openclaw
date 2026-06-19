@@ -357,10 +357,24 @@
   
   .conversation-empty-state {
     margin: auto;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0 var(--size-4-3);
+    text-align: center;
     font-style: italic;
     font-size: var(--font-ui-medium);
     color: var(--text-muted);
     pointer-events: none;
+  }
+
+  .conversation-empty-state .typing-in {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .streaming-content {

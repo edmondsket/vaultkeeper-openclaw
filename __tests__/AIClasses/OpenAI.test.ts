@@ -366,6 +366,7 @@ describe('OpenAI', () => {
 
             // First item: assistant message with text
             expect(requestBody.input[0]).toEqual({
+                type: 'message',
                 role: Role.Assistant,
                 content: 'Let me search'
             });
@@ -595,6 +596,7 @@ describe('OpenAI', () => {
             // Should have 3 items: user message, function_call, function_call_output
             expect(requestBody.input).toHaveLength(3);
             expect(requestBody.input[0]).toEqual({
+                type: 'message',
                 role: Role.User,
                 content: 'Search for files'
             });
@@ -640,6 +642,7 @@ describe('OpenAI', () => {
             // Should have 2 items: user message and function_call (no assistant message since content is empty)
             expect(requestBody.input).toHaveLength(2);
             expect(requestBody.input[0]).toEqual({
+                type: 'message',
                 role: Role.User,
                 content: 'Search for files'
             });
@@ -727,6 +730,7 @@ describe('OpenAI', () => {
                 // Should have 2 items: assistant message + function call
                 expect(requestBody.input).toHaveLength(2);
                 expect(requestBody.input[0]).toEqual({
+                    type: 'message',
                     role: Role.Assistant,
                     content: 'I will search for that.'
                 });
