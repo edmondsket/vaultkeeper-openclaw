@@ -933,13 +933,13 @@ describe('OpenAI', () => {
             expect(result[0]).toEqual({
                 type: 'function',
                 name: 'search_vault_files',
-                description: 'Search for files',
+                description: "CLIENT-SIDE OBSIDIAN VAULT TOOL: Executes in the user's active Obsidian client and real vault, not in the OpenClaw server workspace. Search for files",
                 parameters: definitions[0].parameters
             });
             expect(result[1]).toEqual({
                 type: 'function',
                 name: 'read_file',
-                description: 'Read a file',
+                description: "CLIENT-SIDE OBSIDIAN VAULT TOOL: Executes in the user's active Obsidian client and real vault, not in the OpenClaw server workspace. Read a file",
                 parameters: definitions[1].parameters
             });
         });

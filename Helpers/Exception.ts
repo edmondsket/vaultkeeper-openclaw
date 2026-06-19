@@ -1,5 +1,3 @@
-import { Environment } from "Enums/Environment";
-
 export abstract class Exception {
 
     public static throw(error: unknown): never {
@@ -12,17 +10,13 @@ export abstract class Exception {
     }
 
     public static log(error: unknown) {
-        if (process.env.NODE_ENV === Environment.DEV) {
-            const e: Error = this.new(error);
-            console.error(e.message, e);
-        }
+        const e: Error = this.new(error);
+        console.error(e.message, e);
     }
 
     public static warn(error: unknown) {
-        if (process.env.NODE_ENV === Environment.DEV) {
-            const e: Error = this.new(error);
-            console.warn(e.message, e);
-        }
+        const e: Error = this.new(error);
+        console.warn(e.message, e);
     }
 
     public static messageFrom(error: unknown): string {

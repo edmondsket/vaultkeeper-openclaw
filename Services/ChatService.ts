@@ -17,6 +17,7 @@ import type { WorkSpaceService } from "./WorkSpaceService";
 import type { ExecutionPlan } from "Types/ExecutionPlan";
 import type { MainAgent } from "./AIServices/MainAgent";
 import type { ChatMode } from "Enums/ChatMode";
+import { ApiErrorType } from "Types/ApiError";
 
 export interface IChatServiceCallbacks {
 	onSubmit: () => void;
@@ -119,7 +120,14 @@ export class ChatService {
 		} catch (error) {
 			if (!AbortService.isAbortError(error)) {
 				Exception.log(error);
-				new Notice("Vaultkeeper AI encountered an error");
+				const message = Exception.messageFrom(error);
+				conversation.contents.push(new ConversationContent({
+					role: Role.Assistant,
+					content: `OpenClaw request failed: ${message}`,
+					errorType: ApiErrorType.UNKNOWN
+				}));
+				callbacks.onStreamingUpdate();
+				new Notice(`Vaultkeeper OpenClaw error: ${message}`);
 			}
 		} finally {
 			this.eventService.trigger(Event.DiffClosed);

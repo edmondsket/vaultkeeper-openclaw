@@ -328,7 +328,33 @@
 
   }
 
+  let isComposing = false;
+  let compositionJustEnded = false;
+
+  function handleCompositionStart() {
+    isComposing = true;
+    compositionJustEnded = false;
+  }
+
+  function handleCompositionEnd() {
+    isComposing = false;
+    compositionJustEnded = true;
+
+    // Some IMEs dispatch compositionend immediately before the Enter keydown
+    // that accepts a candidate. Keep that Enter from submitting the message.
+    window.setTimeout(() => {
+      compositionJustEnded = false;
+    }, 0);
+  }
+
   async function handleKeydown(e: KeyboardEvent) {
+    // Enter confirms an IME candidate before it means "send". keyCode 229 is
+    // retained as a fallback for Chromium/WebView versions with incomplete
+    // KeyboardEvent.isComposing support.
+    if (e.isComposing || isComposing || compositionJustEnded || e.keyCode === 229) {
+      return;
+    }
+
     userInstructionAreaActive = false;
     if ($searchState.active) {
       await continueSearch(e);
@@ -595,6 +621,8 @@
     class:error={hasNoApiKey}
     bind:this={textareaElement}
     contenteditable="plaintext-only"
+    on:compositionstart={handleCompositionStart}
+    on:compositionend={handleCompositionEnd}
     on:keydown={handleKeydown}
     on:beforeinput={handleBeforeInput}
     on:input={handleInput}

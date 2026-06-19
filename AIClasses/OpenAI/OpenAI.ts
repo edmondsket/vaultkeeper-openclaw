@@ -23,6 +23,10 @@ import { AbortService } from "Services/AbortService";
 
 export class OpenAI extends BaseAIClass {
 
+    private readonly CLIENT_TOOL_ROUTING_INSTRUCTION = `
+## Obsidian client tool routing
+The function tools included with this request execute in the user's active Obsidian client and access the real vault. For any vault operation, use these client tools exclusively. OpenClaw's own read/write/edit/exec/workspace tools operate on the server and must never be used as substitutes. Only report success after a client vault tool returns success.`;
+
     private readonly SUPPORTED_MIMETYPES = [
         MimeType.TEXT_PLAIN,
         MimeType.APPLICATION_PDF,
@@ -42,11 +46,13 @@ export class OpenAI extends BaseAIClass {
             await this.aiFileService.refreshCache();
         }
 
-        const systemPrompt = `${this.systemPrompt}\n\n${this.userInstruction}`;
-
         const input = await this.extractContents(conversation.contents);
 
         const tools = this.getTools();
+        const toolRoutingInstruction = tools.length > 0 ? this.CLIENT_TOOL_ROUTING_INSTRUCTION : "";
+        const systemPrompt = toolRoutingInstruction
+            ? `${this.systemPrompt}\n\n${this.userInstruction}\n\n${toolRoutingInstruction}`
+            : `${this.systemPrompt}\n\n${this.userInstruction}`;
 
         const compatibilityMode = this.settingsService.settings.openClawCompatibilityMode === true;
         const requestBody = {
@@ -111,7 +117,7 @@ export class OpenAI extends BaseAIClass {
             }
             yield { content: "", isComplete: true };
         } catch (error) {
-            if (AbortService.isAbortError(error)) {
+            if (this.abortService.signal().aborted && AbortService.isAbortError(error)) {
                 throw error;
             }
             const networkError = ApiError.fromNetworkError(Exception.new(error));
@@ -435,7 +441,7 @@ export class OpenAI extends BaseAIClass {
         return aiToolDefinitions.map((functionDefinition) => ({
             type: "function",
             name: functionDefinition.name,
-            description: functionDefinition.description,
+            description: `CLIENT-SIDE OBSIDIAN VAULT TOOL: Executes in the user's active Obsidian client and real vault, not in the OpenClaw server workspace. ${functionDefinition.description}`,
             parameters: functionDefinition.parameters
         }));
     }
