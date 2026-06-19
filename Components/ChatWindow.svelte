@@ -219,6 +219,10 @@
     height: calc(100% - var(--size-4-16));
     border-radius: var(--radius-m);
     color: var(--font-interface-theme);
+    width: 100%;
+    min-width: 0;
+    container-type: inline-size;
+    container-name: vaultkeeper-chat;
   }
 
   #chat-container {
@@ -230,5 +234,6 @@
     grid-row: 2;
     grid-column: 1;
     overflow: hidden;
+    min-width: 0;
   }
 </style>

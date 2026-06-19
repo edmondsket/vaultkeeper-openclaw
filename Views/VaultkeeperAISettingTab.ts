@@ -94,6 +94,18 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 					RegisterAiProvider();
 				}));
 
+		new Setting(containerEl)
+			.setName(Copy.SettingOpenClawCompatibilityMode)
+			.setDesc(Copy.SettingOpenClawCompatibilityModeDesc)
+			.addToggle(toggle => toggle
+				.setValue(this.settingsService.settings.openClawCompatibilityMode !== false)
+				.onChange(async value => {
+					await this.settingsService.updateSettings(settings => {
+						settings.openClawCompatibilityMode = value;
+					});
+					RegisterAiProvider();
+				}));
+
 		/* Model Selection Setting */
 		new Setting(containerEl)
 			.setName(Copy.SettingModel)

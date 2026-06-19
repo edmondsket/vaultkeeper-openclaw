@@ -919,4 +919,31 @@
   #input-container.compact #chat-attachment-button { grid-row: 9; grid-column: 6; }
   #input-container.compact #chat-mode-button { grid-row: 9; grid-column: 8; }
   #input-container.compact #submit-button { grid-row: 9; grid-column: 10; }
+
+  /* CSS fallback that works immediately, even before ResizeObserver runs. */
+  @container vaultkeeper-chat (max-width: 620px) {
+    #input-container {
+      grid-template-rows: auto auto auto auto auto var(--size-4-3) minmax(3.25rem, auto) var(--size-4-2) auto var(--size-4-3);
+      grid-template-columns: var(--size-4-3) auto var(--size-4-2) auto 1fr auto var(--size-4-2) auto var(--size-4-2) auto var(--size-4-3);
+    }
+
+    #input-display-container,
+    #input-attachments-container,
+    #diff-controls-container,
+    #input-search-results-container,
+    #user-instruction-container,
+    #chat-mode-selector-container,
+    #input-field {
+      grid-column: 2 / 11;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    #user-instruction-button { grid-row: 9; grid-column: 2; }
+    #web-search-button { grid-row: 9; grid-column: 4; }
+    #chat-attachment-button { grid-row: 9; grid-column: 6; }
+    #chat-mode-button { grid-row: 9; grid-column: 8; }
+    #submit-button { grid-row: 9; grid-column: 10; }
+  }
 </style>

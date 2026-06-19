@@ -29,6 +29,7 @@ const DEFAULT_SETTINGS: IVaultkeeperAISettings = {
     openClawModel: "openclaw/default",
     openClawPlanningModel: "",
     openClawQuickActionModel: "",
+    openClawCompatibilityMode: true,
     
     apiKeys: {
         claude: "",
@@ -69,6 +70,7 @@ export interface IVaultkeeperAISettings {
     openClawModel?: string;
     openClawPlanningModel?: string;
     openClawQuickActionModel?: string;
+    openClawCompatibilityMode?: boolean;
 
     apiKeys: {
         claude: string;

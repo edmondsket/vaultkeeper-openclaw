@@ -4,6 +4,7 @@ import { RegisterSingleton, DeregisterAllServices } from '../../Services/Depende
 import { Services } from '../../Services/Services';
 import { AIProvider, AIProviderModel } from '../../Enums/ApiProvider';
 import { Role } from '../../Enums/Role';
+import { requestUrl } from 'obsidian';
 
 describe('OpenAIConversationNamingService', () => {
     let service: OpenAIConversationNamingService;
@@ -154,6 +155,29 @@ describe('OpenAIConversationNamingService', () => {
             const result = await service.generateName('Test prompt');
 
             expect(result).toBe('Generated Name');
+        });
+
+        it('should use requestUrl for naming in compatibility mode', async () => {
+            mockSettingsService.settings.openClawCompatibilityMode = true;
+            vi.mocked(requestUrl).mockResolvedValueOnce({
+                status: 200,
+                text: '',
+                json: {
+                    id: 'resp_compat',
+                    status: 'completed',
+                    output: [{
+                        type: 'message',
+                        role: 'assistant',
+                        content: [{ type: 'output_text', text: 'Compatible Name' }]
+                    }]
+                },
+                arrayBuffer: new ArrayBuffer(0),
+                headers: {}
+            });
+
+            service = new OpenAIConversationNamingService();
+            expect(await service.generateName('Test')).toBe('Compatible Name');
+            expect(fetchMock).not.toHaveBeenCalled();
         });
 
         it('should throw error on API error response', async () => {

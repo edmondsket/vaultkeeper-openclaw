@@ -164,11 +164,17 @@ export interface ResponsesAPINonStreamingResponse {
     id: string;
     status: string;
     output: Array<{
-        type: string;
+        type: "message";
         role?: string;
-        content?: Array<{
+        content: Array<{
             type: string;
             text?: string;
         }>;
+    } | {
+        type: "function_call";
+        id?: string;
+        call_id?: string;
+        name: string;
+        arguments: string;
     }>;
 }

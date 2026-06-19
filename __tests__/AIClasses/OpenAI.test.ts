@@ -15,6 +15,7 @@ import { AbortService } from '../../Services/AbortService';
 import { Copy } from 'Enums/Copy';
 import { replaceCopy } from 'Helpers/Helpers';
 import { AgentType } from '../../Enums/AgentType';
+import { requestUrl } from 'obsidian';
 
 describe('OpenAI', () => {
     let openai: OpenAI;
@@ -1022,6 +1023,56 @@ describe('OpenAI', () => {
             openai.agentType = AgentType.QuickAction;
             for await (const chunk of openai.streamRequest(conversation)) {}
             expect(mockStreamingService.streamRequest.mock.calls[0][1].model).toBe('my-fast-model');
+        });
+
+        it('should use requestUrl with a non-streaming body in compatibility mode', async () => {
+            mockSettingsService.settings.openClawCompatibilityMode = true;
+            vi.mocked(requestUrl).mockResolvedValueOnce({
+                status: 200,
+                text: '',
+                json: {
+                    id: 'resp_1',
+                    status: 'completed',
+                    output: [{
+                        type: 'message',
+                        role: 'assistant',
+                        content: [{ type: 'output_text', text: 'Compatible response' }]
+                    }]
+                },
+                arrayBuffer: new ArrayBuffer(0),
+                headers: {}
+            });
+
+            const conversation = new Conversation();
+            conversation.contents.push(new ConversationContent({ role: Role.User, content: 'Test' }));
+            const chunks = [];
+            for await (const chunk of openai.streamRequest(conversation)) chunks.push(chunk);
+
+            expect(mockStreamingService.streamRequest).not.toHaveBeenCalled();
+            const request = vi.mocked(requestUrl).mock.calls[0][0];
+            if (typeof request === 'string') throw new Error('Expected RequestUrlParam');
+            if (typeof request.body !== 'string') throw new Error('Expected JSON request body');
+            expect(JSON.parse(request.body).stream).toBe(false);
+            expect(chunks.some(chunk => chunk.content === 'Compatible response')).toBe(true);
+            expect(chunks.at(-1)?.isComplete).toBe(true);
+        });
+
+        it('should expose non-streaming function calls to the note tool loop', () => {
+            const chunks = (openai as any).parseNonStreamingResponse({
+                id: 'resp_2',
+                status: 'incomplete',
+                output: [{
+                    type: 'function_call',
+                    id: 'item_1',
+                    call_id: 'call_1',
+                    name: 'search_vault_files',
+                    arguments: '{"query":"meeting"}'
+                }]
+            });
+
+            expect(chunks[0].toolCallStarted).toBe('search_vault_files');
+            expect(chunks[1].toolCall).toBeDefined();
+            expect(chunks[1].shouldContinue).toBe(true);
         });
     });
 

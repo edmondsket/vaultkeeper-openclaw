@@ -59,6 +59,7 @@ Copy `manifest.json`, `main.js`, and `styles.css` into `.obsidian/plugins/vaultk
    - **OpenClaw Model**: any model ID accepted by the endpoint, such as `openclaw/default` or `openclaw/<agentId>`.
    - **Planning / Quick Action Model IDs**: optional overrides; leave empty to reuse the main model.
    - **Gateway Token**: the Gateway token/password used for Bearer authentication.
+   - **Non-streaming Compatibility Mode**: leave enabled when OpenClaw is exposed through Tailscale Serve or another endpoint without browser CORS headers. It uses Obsidian `requestUrl()` and remains compatible with desktop and mobile, but displays each response after it completes.
 
 3. Leave the model dropdown on an OpenClaw/OpenAI entry. The custom OpenClaw model above is what is sent to the Gateway.
 

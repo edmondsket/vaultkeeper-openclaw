@@ -40,6 +40,8 @@ export enum Copy {
     SettingOpenClawPlanningModelDesc = "Optional model ID for planning and orchestration. Leave empty to use the main model.",
     SettingOpenClawQuickActionModel = "Quick Action Model ID",
     SettingOpenClawQuickActionModelDesc = "Optional model ID for quick actions and conversation titles. Leave empty to use the main model.",
+    SettingOpenClawCompatibilityMode = "Non-streaming Compatibility Mode",
+    SettingOpenClawCompatibilityModeDesc = "Use Obsidian requestUrl() to bypass browser CORS restrictions. Recommended for OpenClaw behind Tailscale Serve. Responses appear when complete instead of token-by-token.",
     SettingFileExclusions = "File Exclusions",
     SettingContext = "Context",
     SettingSearchResultsLimit = "Search Results Limit",

@@ -7,7 +7,7 @@ import { AIProvider } from "Enums/ApiProvider";
 import { AIToolCall } from "AIClasses/AIToolCall";
 import { fromString as aiToolFromString } from "Enums/AITool";
 import type { IAIToolDefinition } from "AIClasses/ToolDefinitions/IAIToolDefinition";
-import type { ResponseEvent, ResponseOutputTextDelta, ResponseOutputItemAdded, ResponseOutputItemDone, ResponseErrorEvent, ResponseFailedEvent, OpenAIToolTool, ResponsesAPIInput } from "./OpenAITypes";
+import type { ResponseEvent, ResponseOutputTextDelta, ResponseOutputItemAdded, ResponseOutputItemDone, ResponseErrorEvent, ResponseFailedEvent, OpenAIToolTool, ResponsesAPIInput, ResponsesAPINonStreamingResponse } from "./OpenAITypes";
 import { Exception } from "Helpers/Exception";
 import { ApiError, ApiErrorType } from "Types/ApiError";
 import { MimeType, toMimeType } from "Enums/MimeType";
@@ -18,6 +18,8 @@ import { AIToolUsageMode } from "Enums/AIToolUsageMode";
 import { replaceCopy } from 'Helpers/Helpers';
 import { Copy } from "Enums/Copy";
 import { AgentType } from "Enums/AgentType";
+import { requestUrl } from "obsidian";
+import { AbortService } from "Services/AbortService";
 
 export class OpenAI extends BaseAIClass {
 
@@ -46,13 +48,14 @@ export class OpenAI extends BaseAIClass {
 
         const tools = this.getTools();
 
+        const compatibilityMode = this.settingsService.settings.openClawCompatibilityMode === true;
         const requestBody = {
             model: this.openClawModel(),
             instructions: systemPrompt,
             input: input,
             tools: tools,
             tool_choice: this.buildOpenAIToolChoice(),
-            stream: true
+            stream: !compatibilityMode
         };
 
         const headers = {
@@ -60,13 +63,99 @@ export class OpenAI extends BaseAIClass {
             "Content-Type": "application/json"
         };
 
+        const url = this.settingsService.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses";
+
+        if (compatibilityMode) {
+            yield* this.nonStreamingRequest(url, requestBody, headers);
+            return;
+        }
+
         yield* this.streamingService.streamRequest(
-            this.settingsService.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses",
+            url,
             requestBody,
             (chunk: string) => this.parseStreamChunk(chunk),
             headers,
             (error) => this.extractRetryDelay(error)
         );
+    }
+
+    private async* nonStreamingRequest(
+        url: string,
+        requestBody: object,
+        headers: Record<string, string>
+    ): AsyncGenerator<IStreamChunk, void, unknown> {
+        try {
+            if (this.abortService.signal().aborted) {
+                this.abortService.throw();
+            }
+            const response = await requestUrl({
+                url,
+                method: "POST",
+                headers,
+                body: JSON.stringify(requestBody),
+                throw: false
+            });
+            if (this.abortService.signal().aborted) {
+                this.abortService.throw();
+            }
+
+            if (response.status < 200 || response.status >= 300) {
+                const error = ApiError.fromResponse(response.status, "Request failed", response.text);
+                yield { content: "", isComplete: true, error: error.info.userMessage, errorType: error.info.type };
+                return;
+            }
+
+            const data = response.json as ResponsesAPINonStreamingResponse;
+            for (const chunk of this.parseNonStreamingResponse(data)) {
+                yield chunk;
+            }
+            yield { content: "", isComplete: true };
+        } catch (error) {
+            if (AbortService.isAbortError(error)) {
+                throw error;
+            }
+            const networkError = ApiError.fromNetworkError(Exception.new(error));
+            yield {
+                content: "",
+                isComplete: true,
+                error: networkError.info.userMessage,
+                errorType: networkError.info.type
+            };
+        }
+    }
+
+    private parseNonStreamingResponse(data: ResponsesAPINonStreamingResponse): IStreamChunk[] {
+        const chunks: IStreamChunk[] = [];
+
+        for (const item of data.output ?? []) {
+            if (item.type === "message") {
+                    const text = item.content
+                        .filter(part => part.type === "output_text" && part.text)
+                        .map(part => part.text)
+                        .join("");
+                    if (text) {
+                    chunks.push({ content: text, isComplete: false });
+                    }
+                continue;
+            }
+
+            if (item.type === "function_call") {
+                chunks.push({ content: "", isComplete: false, toolCallStarted: item.name });
+                    try {
+                        const toolCall = new AIToolCall(
+                            aiToolFromString(item.name),
+                            JSON.parse(item.arguments) as Record<string, unknown>,
+                            item.call_id || item.id,
+                            undefined
+                        );
+                    chunks.push({ content: "", isComplete: false, toolCall, shouldContinue: true });
+                    } catch (error) {
+                        Exception.log(error);
+                    }
+            }
+        }
+
+        return chunks;
     }
 
     private openClawModel(): string {

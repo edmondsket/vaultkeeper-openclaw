@@ -8,12 +8,14 @@ import type { SettingsService } from "Services/SettingsService";
 import { Exception } from "Helpers/Exception";
 import type { AbortService } from "Services/AbortService";
 import type { ResponsesAPINonStreamingResponse } from "./OpenAITypes";
+import { requestUrl } from "obsidian";
 
 export class OpenAIConversationNamingService implements IConversationNamingService {
     private readonly apiKey: string;
     private readonly responsesUrl: string;
     private readonly model: string;
     private readonly abortService: AbortService;
+    private readonly compatibilityMode: boolean;
 
     public constructor() {
         const settingsService = Resolve<SettingsService>(Services.SettingsService);
@@ -22,6 +24,7 @@ export class OpenAIConversationNamingService implements IConversationNamingServi
         this.model = settingsService.settings.openClawQuickActionModel?.trim()
             || settingsService.settings.openClawModel?.trim()
             || "openclaw/default";
+        this.compatibilityMode = settingsService.settings.openClawCompatibilityMode === true;
         this.abortService = Resolve<AbortService>(Services.AbortService);
     }
 
@@ -40,6 +43,24 @@ export class OpenAIConversationNamingService implements IConversationNamingServi
                 stream: false
             };
 
+            if (this.compatibilityMode) {
+                const response = await requestUrl({
+                    url: this.responsesUrl,
+                    method: "POST",
+                    headers: {
+                        'Authorization': `Bearer ${this.apiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                    throw: false
+                });
+
+                if (response.status < 200 || response.status >= 300) {
+                    Exception.throw(`OpenClaw API error: ${response.status} - ${response.text}`);
+                }
+                return this.extractGeneratedName(response.json as ResponsesAPINonStreamingResponse);
+            }
+
             const response = await fetch(this.responsesUrl, {
                 method: 'POST',
                 headers: {
@@ -55,11 +76,14 @@ export class OpenAIConversationNamingService implements IConversationNamingServi
             }
 
             const data = await response.json() as ResponsesAPINonStreamingResponse;
+            return this.extractGeneratedName(data);
+        });
+    }
 
-            // Find text from any message-type output
-            let generatedName: string | undefined;
+    private extractGeneratedName(data: ResponsesAPINonStreamingResponse): string {
+        let generatedName: string | undefined;
 
-            for (const item of data.output ?? []) {
+        for (const item of data.output ?? []) {
                 if (item.type === 'message' && Array.isArray(item.content)) {
                     for (const content of item.content) {
                         if (content.type === 'output_text' && content.text) {
@@ -71,11 +95,10 @@ export class OpenAIConversationNamingService implements IConversationNamingServi
                 if (generatedName) break;
             }
 
-            if (!generatedName) {
-                Exception.throw("Failed to generate conversation name");
-            }
+        if (!generatedName) {
+            Exception.throw("Failed to generate conversation name");
+        }
 
-            return generatedName;
-        });
+        return generatedName;
     }
 }

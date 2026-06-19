@@ -375,6 +375,18 @@
     overflow: visible;
     white-space: normal;
     overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+
+  @container vaultkeeper-chat (max-width: 620px) {
+    .conversation-empty-state {
+      padding-inline: var(--size-4-4);
+    }
+
+    .conversation-empty-state .typing-in {
+      animation: fadeIn 0.5s ease-out forwards;
+      white-space: normal;
+    }
   }
 
   .streaming-content {
