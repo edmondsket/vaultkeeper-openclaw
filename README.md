@@ -59,7 +59,7 @@ Copy `manifest.json`, `main.js`, and `styles.css` into `.obsidian/plugins/vaultk
    - **Base URL**: `http://127.0.0.1:18789/v1` (or the complete `/v1/responses` URL) for a desktop running OpenClaw locally. Android must use a reachable HTTPS/Tailscale URL; the phone's `127.0.0.1` is the phone itself.
    - **API key / token**: the token used for Bearer authentication by this provider.
    - **Model IDs**: one accepted model ID per line, such as `openclaw/default` or `openclaw/<agentId>`.
-   - **Non-streaming Compatibility Mode**: leave enabled when OpenClaw is exposed through Tailscale Serve or another endpoint without browser CORS headers. It uses Obsidian `requestUrl()` and remains compatible with desktop and mobile, but displays each response after it completes.
+   - **Streaming responses**: configure this separately for every provider. Enable it for Responses API SSE streaming with browser CORS support. Leave it disabled for Tailscale Serve or other endpoints that need Obsidian `requestUrl()` compatibility mode.
 
 3. Assign a model to **Main model**, **Planning model**, and **Quick actions model**. Each assignment may use a different provider.
 

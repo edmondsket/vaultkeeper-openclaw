@@ -109,6 +109,8 @@ export interface IOpenClawProvider {
     baseUrl: string;
     apiKey: string;
     models: string[];
+    /** Stream Responses API events with fetch/SSE. False uses requestUrl() compatibility mode. */
+    streamingEnabled?: boolean;
 }
 
 export interface IOpenClawModelSelection {
@@ -225,6 +227,12 @@ export class SettingsService {
 
     private migrateOpenClawProviders(): void {
         if (Array.isArray(this.settings.openClawProviders) && this.settings.openClawProviders.length > 0) {
+            const legacyStreamingEnabled = this.settings.openClawCompatibilityMode === false;
+            for (const provider of this.settings.openClawProviders) {
+                if (provider.streamingEnabled === undefined) {
+                    provider.streamingEnabled = legacyStreamingEnabled;
+                }
+            }
             return;
         }
 
@@ -240,7 +248,8 @@ export class SettingsService {
             name: "OpenClaw",
             baseUrl: this.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses",
             apiKey: this.settings.apiKeys?.openai ?? "",
-            models
+            models,
+            streamingEnabled: this.settings.openClawCompatibilityMode === false
         };
         settings.openClawProviders = [provider];
         settings.openClawMainSelection = { providerId: provider.id, modelId: models[0] };

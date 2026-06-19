@@ -65,7 +65,8 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 							name: `Provider ${settings.openClawProviders.length + 1}`,
 							baseUrl: "https://example.com/v1",
 							apiKey: "",
-							models: ["model-id"]
+							models: ["model-id"],
+							streamingEnabled: false
 						});
 					});
 					this.display();
@@ -79,19 +80,6 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 		this.renderOpenClawModelSelector(containerEl, "Main model", "Used for normal conversations and vault operations.", "main");
 		this.renderOpenClawModelSelector(containerEl, "Planning model", "Used to plan and orchestrate complex tasks.", "planning");
 		this.renderOpenClawModelSelector(containerEl, "Quick actions model", "Used for quick actions and conversation titles.", "quickAction");
-
-		new Setting(containerEl)
-			.setName(Copy.SettingOpenClawCompatibilityMode)
-			.setDesc(Copy.SettingOpenClawCompatibilityModeDesc)
-			.addToggle(toggle => toggle
-				.setValue(this.settingsService.settings.openClawCompatibilityMode !== false)
-				.onChange(async value => {
-					await this.settingsService.updateSettings(settings => {
-						settings.openClawCompatibilityMode = value;
-					});
-					RegisterAiProvider();
-				}));
-
 
 		/* Exclusions Setting */
 		new Setting(containerEl)
@@ -335,6 +323,16 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 					});
 				text.inputEl.rows = 3;
 			});
+
+		new Setting(containerEl)
+			.setName("Streaming responses")
+			.setDesc("Enable only if this provider supports Responses API SSE streaming and browser CORS. When disabled, requestUrl() compatibility mode returns the complete response at once.")
+			.addToggle(toggle => toggle
+				.setValue(provider.streamingEnabled === true)
+				.onChange(async value => {
+					await this.updateOpenClawProvider(provider.id, item => item.streamingEnabled = value);
+					RegisterAiProvider();
+				}));
 	}
 
 	private renderOpenClawModelSelector(

@@ -54,8 +54,8 @@ The function tools included with this request execute in the user's active Obsid
             ? `${this.systemPrompt}\n\n${this.userInstruction}\n\n${toolRoutingInstruction}`
             : `${this.systemPrompt}\n\n${this.userInstruction}`;
 
-        const compatibilityMode = this.settingsService.settings.openClawCompatibilityMode === true;
         const endpoint = this.openClawEndpoint();
+        const compatibilityMode = !endpoint.streamingEnabled;
         const requestBody = {
             model: endpoint.model,
             instructions: systemPrompt,
@@ -165,7 +165,7 @@ The function tools included with this request execute in the user's active Obsid
         return chunks;
     }
 
-    private openClawEndpoint(): { url: string; model: string; apiKey: string } {
+    private openClawEndpoint(): { url: string; model: string; apiKey: string; streamingEnabled: boolean } {
         let kind: "main" | "planning" | "quickAction";
         switch (this.agentType) {
             case AgentType.Planning:
@@ -192,7 +192,8 @@ The function tools included with this request execute in the user's active Obsid
             return {
                 url: this.settingsService.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses",
                 model,
-                apiKey: this.apiKey
+                apiKey: this.apiKey,
+                streamingEnabled: this.settingsService.settings.openClawCompatibilityMode !== true
             };
         }
 
@@ -202,13 +203,15 @@ The function tools included with this request execute in the user's active Obsid
             return {
                 url: this.settingsService.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses",
                 model: this.settingsService.settings.openClawModel?.trim() || "openclaw/default",
-                apiKey: this.apiKey
+                apiKey: this.apiKey,
+                streamingEnabled: this.settingsService.settings.openClawCompatibilityMode !== true
             };
         }
         return {
             url: this.settingsService.getOpenClawResponsesUrl(provider),
             model: selection.modelId,
-            apiKey: provider.apiKey
+            apiKey: provider.apiKey,
+            streamingEnabled: provider.streamingEnabled === true
         };
     }
 

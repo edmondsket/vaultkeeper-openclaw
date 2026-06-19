@@ -72,6 +72,14 @@ describe('SettingsService', () => {
 			expect(settingsService.getOpenClawResponsesUrl(provider)).toBe('https://relay.example/v1/responses');
 		});
 
+		it('migrates the legacy compatibility switch to each provider', () => {
+			settingsService = new SettingsService({
+				openClawCompatibilityMode: false,
+				openClawProviders: [{ id: 'x', name: 'X', baseUrl: 'https://x.example/v1', apiKey: '', models: ['m'] }]
+			});
+			expect(settingsService.settings.openClawProviders?.[0].streamingEnabled).toBe(true);
+		});
+
         it('should merge loaded settings with defaults', () => {
             const loadedSettings: Partial<IVaultkeeperAISettings> = {
                 firstTimeStart: false,

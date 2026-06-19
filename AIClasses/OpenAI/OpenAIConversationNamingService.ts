@@ -33,7 +33,9 @@ export class OpenAIConversationNamingService implements IConversationNamingServi
             || settingsService.settings.openClawQuickActionModel?.trim()
             || settingsService.settings.openClawModel?.trim()
             || "openclaw/default";
-        this.compatibilityMode = settingsService.settings.openClawCompatibilityMode === true;
+        this.compatibilityMode = provider
+            ? provider.streamingEnabled !== true
+            : settingsService.settings.openClawCompatibilityMode === true;
         this.abortService = Resolve<AbortService>(Services.AbortService);
     }
 

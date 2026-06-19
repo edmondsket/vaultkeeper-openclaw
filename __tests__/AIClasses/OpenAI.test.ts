@@ -1032,8 +1032,8 @@ describe('OpenAI', () => {
                 quickAction: { providerId: 'provider-a', modelId: 'fast-a' }
             };
             const providers: Record<string, any> = {
-                'provider-a': { id: 'provider-a', name: 'A', baseUrl: 'https://a.example/v1', apiKey: 'token-a', models: ['model-a', 'fast-a'] },
-                'provider-b': { id: 'provider-b', name: 'B', baseUrl: 'https://b.example/v1', apiKey: 'token-b', models: ['planner-b'] }
+                'provider-a': { id: 'provider-a', name: 'A', baseUrl: 'https://a.example/v1', apiKey: 'token-a', models: ['model-a', 'fast-a'], streamingEnabled: true },
+                'provider-b': { id: 'provider-b', name: 'B', baseUrl: 'https://b.example/v1', apiKey: 'token-b', models: ['planner-b'], streamingEnabled: true }
             };
             mockSettingsService.getOpenClawSelection = vi.fn((kind: keyof typeof selections) => selections[kind]);
             mockSettingsService.getOpenClawProvider = vi.fn((selection: any) => providers[selection.providerId]);
