@@ -1,5 +1,5 @@
 import { AIProvider, AIProviderModel, fromModel, isValidProviderModel } from "Enums/ApiProvider";
-import { Copy } from "Enums/Copy";
+import { Copy, setCopyLanguage, type DisplayLanguage } from "Enums/Copy";
 import { Selector } from "Enums/Selector";
 import type VaultkeeperAIPlugin from "main";
 import { HelpModal } from "Modals/HelpModal";
@@ -44,19 +44,33 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
+			.setName(Copy.SettingLanguage)
+			.setDesc(Copy.SettingLanguageDesc)
+			.addDropdown(dropdown => dropdown
+				.addOption("en", Copy.LanguageEnglish)
+				.addOption("zh-CN", Copy.LanguageChinese)
+				.setValue(this.settingsService.settings.displayLanguage ?? "en")
+				.onChange(async value => {
+					const language = value as DisplayLanguage;
+					await this.settingsService.updateSettings(settings => settings.displayLanguage = language);
+					setCopyLanguage(language);
+					this.display();
+				}));
+
+		new Setting(containerEl)
 			.setHeading()
-			.setName("Model providers")
-			.setDesc("Add Responses API providers. Each provider can use a different URL, token, and model list.");
+			.setName(Copy.SettingModelProviders)
+			.setDesc(Copy.SettingModelProvidersDesc);
 
 		for (const provider of this.settingsService.settings.openClawProviders ?? []) {
 			this.renderOpenClawProvider(containerEl, provider);
 		}
 
 		new Setting(containerEl)
-			.setName("Add provider")
-			.setDesc("Create another model provider or relay endpoint.")
+			.setName(Copy.SettingAddProvider)
+			.setDesc(Copy.SettingAddProviderDesc)
 			.addButton(button => button
-				.setButtonText("Add provider")
+				.setButtonText(Copy.SettingAddProvider)
 				.setCta()
 				.onClick(async () => {
 					await this.settingsService.updateSettings(settings => {
@@ -74,12 +88,12 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setHeading()
-			.setName("Model assignments")
-			.setDesc("Choose any model from any configured provider for each job.");
+			.setName(Copy.SettingModelAssignments)
+			.setDesc(Copy.SettingModelAssignmentsDesc);
 
-		this.renderOpenClawModelSelector(containerEl, "Main model", "Used for normal conversations and vault operations.", "main");
-		this.renderOpenClawModelSelector(containerEl, "Planning model", "Used to plan and orchestrate complex tasks.", "planning");
-		this.renderOpenClawModelSelector(containerEl, "Quick actions model", "Used for quick actions and conversation titles.", "quickAction");
+		this.renderOpenClawModelSelector(containerEl, Copy.SettingMainModel, Copy.SettingMainModelDesc, "main");
+		this.renderOpenClawModelSelector(containerEl, Copy.SettingPlanningRoleModel, Copy.SettingPlanningRoleModelDesc, "planning");
+		this.renderOpenClawModelSelector(containerEl, Copy.SettingQuickRoleModel, Copy.SettingQuickRoleModelDesc, "quickAction");
 
 		/* Exclusions Setting */
 		new Setting(containerEl)
@@ -257,17 +271,17 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 
 	private renderOpenClawProvider(containerEl: HTMLElement, provider: IOpenClawProvider): void {
 		new Setting(containerEl)
-			.setName("Provider name")
-			.setDesc("A label used to group this provider's models in the selectors.")
+			.setName(Copy.SettingProviderName)
+			.setDesc(Copy.SettingProviderNameDesc)
 			.addText(text => text
-				.setPlaceholder("My provider")
+				.setPlaceholder(Copy.PlaceholderProviderName)
 				.setValue(provider.name)
 				.onChange(async value => {
 					await this.updateOpenClawProvider(provider.id, item => item.name = value.trim());
 					this.refreshOpenClawModelDropdowns();
 				}))
 			.addExtraButton(button => {
-				button.setIcon("trash").setTooltip("Delete provider");
+				button.setIcon("trash").setTooltip(Copy.TooltipDeleteProvider);
 				button.extraSettingsEl.toggleAttribute("disabled", (this.settingsService.settings.openClawProviders?.length ?? 0) <= 1);
 				button.onClick(async () => {
 					if ((this.settingsService.settings.openClawProviders?.length ?? 0) <= 1) return;
@@ -279,8 +293,8 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("Base URL")
-			.setDesc("Enter a base URL ending in /v1, or the complete /v1/responses URL.")
+			.setName(Copy.SettingBaseUrl)
+			.setDesc(Copy.SettingBaseUrlDesc)
 			.addText(text => text
 				.setPlaceholder("https://example.com/v1")
 				.setValue(provider.baseUrl)
@@ -291,10 +305,10 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 
 		let tokenInput: HTMLInputElement;
 		new Setting(containerEl)
-			.setName("API key / token")
-			.setDesc("Bearer token used only for this provider.")
+			.setName(Copy.SettingProviderToken)
+			.setDesc(Copy.SettingProviderTokenDesc)
 			.addText(text => {
-				text.setPlaceholder("Enter token")
+				text.setPlaceholder(Copy.PlaceholderProviderToken)
 					.setValue(provider.apiKey)
 					.onChange(async value => {
 						await this.updateOpenClawProvider(provider.id, item => item.apiKey = value);
@@ -304,15 +318,15 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 				tokenInput = text.inputEl;
 			})
 			.addExtraButton(button => {
-				button.setIcon("eye").setTooltip("Show token").onClick(() => {
+				button.setIcon("eye").setTooltip(Copy.TooltipShowToken).onClick(() => {
 					tokenInput.type = tokenInput.type === "password" ? "text" : "password";
 					setIcon(button.extraSettingsEl, tokenInput.type === "password" ? "eye" : "eye-off");
 				});
 			});
 
 		new Setting(containerEl)
-			.setName("Model IDs")
-			.setDesc("One model ID per line. These values are sent to this provider exactly as entered.")
+			.setName(Copy.SettingModelIds)
+			.setDesc(Copy.SettingModelIdsDesc)
 			.addTextArea(text => {
 				text.setPlaceholder("model-a\nmodel-b")
 					.setValue(provider.models.join("\n"))
@@ -325,8 +339,8 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("Streaming responses")
-			.setDesc("Enable only if this provider supports Responses API SSE streaming and browser CORS. When disabled, requestUrl() compatibility mode returns the complete response at once.")
+			.setName(Copy.SettingStreamingResponses)
+			.setDesc(Copy.SettingStreamingResponsesDesc)
 			.addToggle(toggle => toggle
 				.setValue(provider.streamingEnabled === true)
 				.onChange(async value => {
@@ -369,7 +383,7 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 		let modelCount = 0;
 		for (const provider of this.settingsService.settings.openClawProviders ?? []) {
 			if (provider.models.length === 0) continue;
-			const group = dropdown.selectEl.createEl("optgroup", { attr: { label: provider.name || "Unnamed provider" } });
+			const group = dropdown.selectEl.createEl("optgroup", { attr: { label: provider.name || Copy.UnnamedProvider } });
 			for (const model of provider.models) {
 				const selection = { providerId: provider.id, modelId: model };
 				group.createEl("option", { value: this.openClawSelectionKey(selection), text: model });
@@ -377,7 +391,7 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 			}
 		}
 		if (modelCount === 0) {
-			dropdown.addOption("", "No models configured");
+			dropdown.addOption("", Copy.NoModelsConfigured);
 			dropdown.setDisabled(true);
 		}
 	}

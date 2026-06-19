@@ -3,6 +3,8 @@ import { Resolve } from "./DependencyService";
 import { Services } from "./Services";
 import { Notice, TFile, type WorkspaceLeaf } from "obsidian";
 import type { FileSystemService } from "./FileSystemService";
+import { Copy } from "Enums/Copy";
+import { replaceCopy } from "Helpers/Helpers";
 
 export class WorkSpaceService {
     private readonly plugin: VaultkeeperAIPlugin = Resolve<VaultkeeperAIPlugin>(Services.VaultkeeperAIPlugin);
@@ -15,7 +17,7 @@ export class WorkSpaceService {
         if (file) {
             await leaf.openFile(file);
         } else {
-            new Notice(`Failed to open note: "${noteName}"`);
+            new Notice(replaceCopy(Copy.ErrorOpenNote, [noteName]));
         }
     }
 
@@ -26,7 +28,7 @@ export class WorkSpaceService {
             const leaf: WorkspaceLeaf = this.plugin.app.workspace.getLeaf(false);
             await leaf.openFile(file);
         } else {
-            new Notice(`Failed to open note: "${path}"`);
+            new Notice(replaceCopy(Copy.ErrorOpenNote, [path]));
         }
     }
 

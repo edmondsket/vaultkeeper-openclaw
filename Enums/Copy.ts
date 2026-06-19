@@ -1,4 +1,6 @@
-export enum Copy {
+import { ChineseCopy } from "./Copy.zh";
+
+export enum EnglishCopy {
     // General Copy
     UserInstructions1 = "You can create custom ",
     UserInstructions2 = "instructions",
@@ -29,6 +31,45 @@ export enum Copy {
     ProviderMistral = "Mistral",
 
     // Settings Copy
+    SettingLanguage = "Language",
+    SettingLanguageDesc = "Choose the language used by the plugin interface.",
+    LanguageEnglish = "English",
+    LanguageChinese = "简体中文",
+    SettingModelProviders = "Model providers",
+    SettingModelProvidersDesc = "Add Responses API providers. Each provider can use a different URL, token, model list, and streaming mode.",
+    SettingAddProvider = "Add provider",
+    SettingAddProviderDesc = "Create another model provider or relay endpoint.",
+    SettingModelAssignments = "Model assignments",
+    SettingModelAssignmentsDesc = "Choose any model from any configured provider for each job.",
+    SettingMainModel = "Main model",
+    SettingMainModelDesc = "Used for normal conversations and vault operations.",
+    SettingPlanningRoleModel = "Planning model",
+    SettingPlanningRoleModelDesc = "Used to plan and orchestrate complex tasks.",
+    SettingQuickRoleModel = "Quick actions model",
+    SettingQuickRoleModelDesc = "Used for quick actions and conversation titles.",
+    SettingProviderName = "Provider name",
+    SettingProviderNameDesc = "A label used to group this provider's models in the selectors.",
+    SettingBaseUrl = "Base URL",
+    SettingBaseUrlDesc = "Enter a base URL ending in /v1, or the complete /v1/responses URL.",
+    SettingProviderToken = "API key / token",
+    SettingProviderTokenDesc = "Bearer token used only for this provider.",
+    SettingModelIds = "Model IDs",
+    SettingModelIdsDesc = "One model ID per line. These values are sent to this provider exactly as entered.",
+    SettingStreamingResponses = "Streaming responses",
+    SettingStreamingResponsesDesc = "Enable only if this provider supports Responses API SSE streaming and browser CORS. When disabled, requestUrl() compatibility mode returns the complete response at once.",
+    TooltipDeleteProvider = "Delete provider",
+    TooltipShowToken = "Show token",
+    PlaceholderProviderName = "My provider",
+    PlaceholderProviderToken = "Enter token",
+    NoModelsConfigured = "No models configured",
+    UnnamedProvider = "Unnamed provider",
+    GreetingMorning = "Good morning! Shall we get started?",
+    GreetingMidday = "Hello! How can I assist you today?",
+    GreetingEvening = "What can I do for you this evening?",
+    GreetingNight = "Burning the midnight oil? I'm here to help!",
+    ButtonCollapsePlan = "Collapse planned steps",
+    ButtonExpandPlan = "Expand planned steps",
+    PluginBannerAlt = "Plugin banner",
     SettingModel = "Model",
     SettingPlanningModel = "Planning Model",
     SettingApiKey = "Gateway Token",
@@ -134,6 +175,43 @@ export enum Copy {
     ButtonTurnOnWebSearch = "Turn on Web Search",
     ButtonUserInstruction = "User Instruction",
     ButtonAttachFiles = "Attach Files",
+    ButtonNewConversation = "New Conversation",
+    ButtonDeleteConversation = "Delete Conversation",
+    ButtonConversationHistory = "Conversation History",
+    ButtonSettings = "Vaultkeeper OpenClaw Settings",
+    ButtonHelp = "Help",
+    ButtonClosePlugin = "Close Vaultkeeper OpenClaw",
+    ButtonRemoveAttachment = "Remove Attachment",
+    ButtonScrollToBottom = "Scroll to bottom",
+    ButtonAccept = "Accept",
+    ButtonReject = "Reject",
+    ButtonDeleteSelectedConversations = "Delete selected conversations",
+    ButtonSearchConversations = "Search conversations",
+    ButtonCloseConversationHistory = "Close conversation history",
+    QuickActionProofread = "Proofread",
+    QuickActionBeautify = "Beautify",
+    QuickActionApplyTemplate = "Apply template",
+    QuickActionApplyLinks = "Apply links",
+    QuickActionApplyTags = "Apply tags",
+    QuickActionSuggestTags = "Suggest tags",
+    QuickActionGenerateFrontmatter = "Generate frontmatter",
+    QuickActionMenu = "Quick actions",
+    QuickActionAriaLabel = "AI quick actions",
+    QuickActionProofreading = "Proofreading...",
+    QuickActionBeautifying = "Beautifying content...",
+    QuickActionApplyingTemplate = "Applying template...",
+    QuickActionApplyingLinks = "Applying links...",
+    QuickActionApplyingTags = "Applying tags...",
+    QuickActionSuggestingTags = "Suggesting tags...",
+    QuickActionGeneratingFrontmatter = "Generating frontmatter...",
+    QuickActionTimedOut = "Quick action '{0}' timed out",
+    ErrorUnsupportedFile = "Unsupported file '{0}'",
+    ErrorOpenNote = "Failed to open note: '{0}'",
+    ErrorDeleteConversation = "Failed to delete conversation '{0}'",
+    ErrorDeleteConversationData = "Failed to delete conversation data for '{0}'",
+    ErrorPlugin = "Vaultkeeper OpenClaw error: {0}",
+    ErrorSaveConversation = "Failed to save conversation data for '{0}'",
+    ErrorNameConversation = "Failed to name conversation '{0}'",
 
     // Agent file message
     AttachedFile = `The file {fileName} is attached and its full contents follow below. This is the actual content of the file — read it directly to answer the user. This attachment may be a file the user uploaded to the chat, or a vault file you retrieved with a tool; either way, the content below is authoritative and you do NOT need to read or fetch this file again.`,
@@ -431,6 +509,8 @@ Each AI provider has their own data policies:
 
     // Conversation Modal Copy
     NoConversationsFound = "No conversations match your search.",
+    ConversationDate = "Date",
+    ConversationTitle = "Title",
 
     // Help Modal Additional Copy
     HelpModalCloseAriaLabel = "Close Help Modal",
@@ -712,3 +792,25 @@ Preferred programming language: {{language}}
 
 **Remember:** A good system prompt is clear, dense, and easy to understand, leaving no room for misinterpretation. Start simple, test thoroughly, and refine based on real results.`
 }
+
+export type CopyKey = keyof typeof EnglishCopy;
+export type DisplayLanguage = "en" | "zh-CN";
+
+let displayLanguage: DisplayLanguage = "en";
+
+export function setCopyLanguage(language: DisplayLanguage): void {
+    displayLanguage = language;
+}
+
+export function getCopyLanguage(): DisplayLanguage {
+    return displayLanguage;
+}
+
+export const Copy = new Proxy(EnglishCopy, {
+    get(target, property: string | symbol) {
+        if (typeof property === "string" && displayLanguage === "zh-CN") {
+            return ChineseCopy[property as CopyKey] ?? target[property as CopyKey];
+        }
+        return target[property as CopyKey];
+    }
+}) as typeof EnglishCopy;

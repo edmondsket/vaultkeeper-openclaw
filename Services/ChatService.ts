@@ -18,6 +18,8 @@ import type { ExecutionPlan } from "Types/ExecutionPlan";
 import type { MainAgent } from "./AIServices/MainAgent";
 import type { ChatMode } from "Enums/ChatMode";
 import { ApiErrorType } from "Types/ApiError";
+import { Copy } from "Enums/Copy";
+import { replaceCopy } from "Helpers/Helpers";
 
 export interface IChatServiceCallbacks {
 	onSubmit: () => void;
@@ -127,7 +129,7 @@ export class ChatService {
 					errorType: ApiErrorType.UNKNOWN
 				}));
 				callbacks.onStreamingUpdate();
-				new Notice(`Vaultkeeper OpenClaw error: ${message}`);
+				new Notice(replaceCopy(Copy.ErrorPlugin, [message]));
 			}
 		} finally {
 			this.eventService.trigger(Event.DiffClosed);
@@ -154,7 +156,7 @@ export class ChatService {
 	private async saveConversation(conversation: Conversation) {
 		const result = await this.conversationService.saveConversation(conversation);
 		if (result instanceof Error) {
-			new Notice(`Failed to save conversation data for '${conversation.title}'`);
+			new Notice(replaceCopy(Copy.ErrorSaveConversation, [conversation.title]));
 		}
 	}
 }

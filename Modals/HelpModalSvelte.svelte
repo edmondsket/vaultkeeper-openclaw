@@ -169,7 +169,7 @@
 		<div class="help-modal-content" bind:this={contentContainer}>
 			{#if contentVisible}
 				{#if selectedTopic === 1}
-					<img class="help-modal-banner" src={assetsService.bannerSource} alt="Plugin Banner">
+					<img class="help-modal-banner" src={assetsService.bannerSource} alt={Copy.PluginBannerAlt}>
 				{/if}
 				<div transition:fade={{ duration: 100 }} use:helpContentAction={selectedTopic}></div>
 				<div transition:fade={{ duration: 100 }}>

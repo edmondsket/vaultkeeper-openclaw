@@ -66,7 +66,7 @@
         class="top-bar-button clickable-icon"
         class:hidden={selectedItems.size === 0}
         on:click={handleDelete}
-        aria-label="Delete Selected Conversations"
+        aria-label={Copy.ButtonDeleteSelectedConversations}
       ></button>
       <input
         type="text"
@@ -75,14 +75,14 @@
         placeholder="Search conversations..."
         disabled={items.length === 0}
         bind:value={searchQuery}
-        aria-label="Search Conversations"
+        aria-label={Copy.ButtonSearchConversations}
       />
       <button
         bind:this={closeButton}
         id="close-button"
         class="top-bar-button clickable-icon"
         on:click={onClose}
-        aria-label="Close Conversation History"
+        aria-label={Copy.ButtonCloseConversationHistory}
       ></button>
     </div>
   </div>
@@ -93,9 +93,9 @@
       </p>
     {:else}
       <div class="history-list-modal-list" transition:fade={{ duration: 200 }}>
-        <span class="history-list-modal-date history-list-modal-header">Date</span>
+        <span class="history-list-modal-date history-list-modal-header">{Copy.ConversationDate}</span>
         <span class="history-list-modal-separator history-list-modal-header">|</span>
-        <span class="history-list-modal-title history-list-modal-header">Title</span>
+        <span class="history-list-modal-title history-list-modal-header">{Copy.ConversationTitle}</span>
         <input
           type="checkbox"
           class="history-list-modal-checkbox"

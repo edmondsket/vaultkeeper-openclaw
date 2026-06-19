@@ -12,6 +12,8 @@ import { Services } from "./Services";
 import { readDocument } from "Helpers/DocumentHelper";
 import { MimeType } from "Enums/MimeType";
 import { StringTools } from "Helpers/StringTools";
+import { Copy } from "Enums/Copy";
+import { replaceCopy } from "Helpers/Helpers";
 
 export class InputService {
 
@@ -43,7 +45,7 @@ export class InputService {
                 const fileType = toFileType(pathExtname(file.name))
 
                 if (fileType === FileType.UNKNOWN) {
-                    new Notice(`Unsupported file '${file.name}'`);
+                    new Notice(replaceCopy(Copy.ErrorUnsupportedFile, [file.name]));
                     continue;
                 }
                 

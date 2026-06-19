@@ -8,6 +8,8 @@ import { Path } from "Enums/Path";
 import { Exception } from "Helpers/Exception";
 import { Notice } from "obsidian";
 import { AbortService } from "./AbortService";
+import { Copy } from "Enums/Copy";
+import { replaceCopy } from "Helpers/Helpers";
 
 export class ConversationNamingService {
     private readonly stackLimit: number = 1000;
@@ -65,7 +67,7 @@ export class ConversationNamingService {
             } catch (error) {
                 if (!AbortService.isAbortError(error)) {
                     Exception.log(error);
-                    new Notice(`Failed to name conversation '${conversation.title}'`);
+                    new Notice(replaceCopy(Copy.ErrorNameConversation, [conversation.title]));
                 }
             }
         });

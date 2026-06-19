@@ -124,7 +124,7 @@
          out:slide
          on:click={toggleExpand}
          on:keydown={(e) => e.key === 'Enter' && toggleExpand()}
-         aria-label={expanded ? "Collapse planned steps" : "Expand planned steps"}
+         aria-label={expanded ? Copy.ButtonCollapsePlan : Copy.ButtonExpandPlan}
          role="button"
          tabindex=0>
         <div id="chat-plan-steps-wrapper" style:height="{expanded ? expandedHeight : collapsedHeight}px" bind:this={wrapperDiv}>

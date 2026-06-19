@@ -10,6 +10,8 @@
 	import type { ChatService } from "Services/ChatService";
 	import { fade } from "svelte/transition";
 	import type { HelpModal } from "Modals/HelpModal";
+	import { Copy } from "Enums/Copy";
+	import { replaceCopy } from "Helpers/Helpers";
 
   export let leaf: WorkspaceLeaf;
   export let onNewConversation: (() => void) | undefined = undefined;
@@ -37,7 +39,7 @@
     const result = await conversationFileSystemService.deleteCurrentConversation();
 
     if (result instanceof Error) {
-      new Notice(`Failed to delete conversation data for '${conversationFileSystemService.getCurrentConversationPath()}'`);
+      new Notice(replaceCopy(Copy.ErrorDeleteConversationData, [conversationFileSystemService.getCurrentConversationPath() ?? ""]));
     }
 
     chatService.stop();
@@ -99,21 +101,21 @@
       id="new-conversation-button"
       class="top-bar-button clickable-icon"
       on:click={() => startNewConversation()}
-      aria-label="New Conversation"
+      aria-label={Copy.ButtonNewConversation}
     ></button>
     <button
       bind:this={deleteConversationButton}
       id="delete-conversation-button"
       class="top-bar-button clickable-icon"
       on:click={() => deleteCurrentConversation()}
-      aria-label="Delete Conversation"
+      aria-label={Copy.ButtonDeleteConversation}
     ></button>
     <button
       bind:this={conversationHistoryButton}
       id="conversation-history-button"
       class="top-bar-button clickable-icon"
       on:click={() => openConversationHistory()}
-      aria-label="Conversation History"
+      aria-label={Copy.ButtonConversationHistory}
     ></button>
     <div id="conversation-divider-1" class="top-bar-divider"></div>
     <button
@@ -121,14 +123,14 @@
       id="settings-button"
       class="top-bar-button clickable-icon"
       on:click={openSettings}
-      aria-label="Vaultkeeper AI Settings"
+      aria-label={Copy.ButtonSettings}
     ></button>
     <button
       bind:this={helpMenuButton}
       id="help-menu-button"
       class="top-bar-button clickable-icon"
       on:click={openHelpMenu}
-      aria-label="Help"
+      aria-label={Copy.ButtonHelp}
     ></button>
     {#if conversationTitle !== ""}
       <div id="conversation-divider-2" class="top-bar-divider" out:fade></div>
@@ -139,7 +141,7 @@
       id="close-button"
       class="top-bar-button clickable-icon"
       on:click={closePlugin}
-      aria-label="Close Vaultkeeper AI"
+      aria-label={Copy.ButtonClosePlugin}
     ></button>
   </div>
 </main>

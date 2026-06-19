@@ -3,6 +3,7 @@
   import type { DiffService } from "Services/DiffService";
   import { Services } from "Services/Services";
   import { tick } from "svelte";
+  import { Copy } from "Enums/Copy";
 
   export let diffOpen = false;
 
@@ -28,14 +29,14 @@
       <button
         id="diff-accept"
         class="diff-button"
-        aria-label="Accept"
+        aria-label={Copy.ButtonAccept}
         on:click={() => diffService.onAccept()}>
         Accept
       </button>
       <button
         id="diff-reject"
         class="diff-button"
-        aria-label="Reject"
+        aria-label={Copy.ButtonReject}
         on:click={() => diffService.onReject()}>
         Reject
       </button>

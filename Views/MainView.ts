@@ -57,7 +57,7 @@ export class MainView extends ItemView {
       props: {}
     }) as ChatWindowComponent;
 
-    return Promise.resolve(); 
+    return Promise.resolve();
   }
 
   public override async onClose(): Promise<void> {

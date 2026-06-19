@@ -11,6 +11,7 @@
 	import { getOuterHeight, setElementIcon } from "Helpers/ElementHelper";
 	import { setIcon } from "obsidian";
 	import { fade } from "svelte/transition";
+	import { Copy } from "Enums/Copy";
 
   export let messages: ConversationContent[] = [];
   export let currentThought: string | null = null;
@@ -231,7 +232,7 @@
         id="scroll-to-bottom-button"
         bind:this={scrollToBottomButton}
         on:click={() => updateChatAreaLayout("smooth")}
-        aria-label="Scroll to bottom">
+        aria-label={Copy.ButtonScrollToBottom}>
       </button>
     </div>
   {/if}

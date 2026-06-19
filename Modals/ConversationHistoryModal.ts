@@ -11,6 +11,8 @@ import { conversationStore } from 'Stores/ConversationStore';
 import { Selector } from 'Enums/Selector';
 import type { ChatService } from 'Services/ChatService';
 import type VaultkeeperAIPlugin from 'main';
+import { Copy } from 'Enums/Copy';
+import { replaceCopy } from 'Helpers/Helpers';
 
 interface IListItem {
     id: string;
@@ -97,7 +99,7 @@ export class ConversationHistoryModal extends Modal {
         for (const item of itemsToDelete) {
             const result = await this.fileSystemService.deleteFile(item.filePath, true, false);
             if (result instanceof Error) {
-                new Notice(`Failed to delete conversation '${item.title}'`);
+                new Notice(replaceCopy(Copy.ErrorDeleteConversation, [item.title]));
                 continue;
             }
             deletedIds.push(item.id);

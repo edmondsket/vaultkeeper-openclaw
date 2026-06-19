@@ -50,7 +50,7 @@ export class QuickActionsDefinitionsService {
                 return; // Either an excluded file or nothing to proofread
             }
 
-            const notice = this.showNotice("Proofreading...");
+            const notice = this.showNotice(Copy.QuickActionProofreading);
             try {
                 if (selection.length > 0) {
                     const result = await this.performAction(ProofreadPrompt, selection);
@@ -87,7 +87,7 @@ export class QuickActionsDefinitionsService {
                 return; // Either an excluded file or nothing to beautify
             }
 
-            const notice = this.showNotice("Beautifying content...");
+            const notice = this.showNotice(Copy.QuickActionBeautifying);
             try {
                 if (selection.length > 0) {
                     const result = await this.performAction(BeautifyPrompt, selection);
@@ -141,7 +141,7 @@ export class QuickActionsDefinitionsService {
                         new Date().toString()
                     ]);
 
-                const notice = this.showNotice("Applying template...");
+                const notice = this.showNotice(Copy.QuickActionApplyingTemplate);
                 try {
                     const context = `${Copy.ApplyTemplateTemplateSeparator}\n${templateContent}\n${Copy.ApplyTemplateContentSeparator}\n${content}`;
                     const result = await this.performAction(prompt, context);
@@ -172,7 +172,7 @@ export class QuickActionsDefinitionsService {
             const links = this.vaultcacheService.wikiLinks.links.join("\n");
             const prompt = replaceCopy(ApplyLinksPrompt, [links]);
 
-            const notice = this.showNotice("Applying links...");
+            const notice = this.showNotice(Copy.QuickActionApplyingLinks);
             try {
                 if (selection.length > 0) {
                     const result = await this.performAction(prompt, selection);
@@ -216,7 +216,7 @@ export class QuickActionsDefinitionsService {
             const allowedTags = this.vaultcacheService.tags;
             const prompt = replaceCopy(ApplyTagsPrompt, [Array.from(allowedTags).join("\n")]);
 
-            const notice = this.showNotice("Applying tags...");
+            const notice = this.showNotice(Copy.QuickActionApplyingTags);
             try {
                 const result = await this.performAction(prompt, body);
                 if (!result || result.trim() === "") {
@@ -264,7 +264,7 @@ export class QuickActionsDefinitionsService {
             const availableTags = this.vaultcacheService.tags;
             const prompt = replaceCopy(SuggestTagsPrompt, [Array.from(availableTags).join("\n")]);
 
-            const notice = this.showNotice("Suggesting tags...");
+            const notice = this.showNotice(Copy.QuickActionSuggestingTags);
             try {
                 const result = await this.performAction(prompt, body);
                 if (!result || result.trim() === "") {
@@ -317,7 +317,7 @@ export class QuickActionsDefinitionsService {
                     new Date().toString()
                 ]);
 
-            const notice = this.showNotice("Generating frontmatter...");
+            const notice = this.showNotice(Copy.QuickActionGeneratingFrontmatter);
             try {
                 const result = await this.performAction(prompt, body);
                 if (!result || result.trim() === "") {
@@ -352,7 +352,7 @@ export class QuickActionsDefinitionsService {
 
     private async asSerialAction(name: string, action: () => Promise<void>): Promise<void> {
         if (!await this.semaphore.wait(30000)) {
-            this.showNotice(`Quick action '${name}' timed out`, 3000);
+            this.showNotice(replaceCopy(Copy.QuickActionTimedOut, [name]), 3000);
             return;
         }
 

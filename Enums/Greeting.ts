@@ -1,6 +1,8 @@
-export enum Greeting {
-    Morning = "Good morning! Shall we get started?",
-    Midday = "Hello! How can I assist you today?",
-    Evening = "What can I do for you this evening?",
-    Night = "Burning the midnight oil? I'm here to help!"
-  }
+import { Copy } from "./Copy";
+
+export const Greeting = {
+    get Morning() { return Copy.GreetingMorning; },
+    get Midday() { return Copy.GreetingMidday; },
+    get Evening() { return Copy.GreetingEvening; },
+    get Night() { return Copy.GreetingNight; }
+};

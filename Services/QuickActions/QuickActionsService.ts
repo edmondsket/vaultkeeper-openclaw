@@ -7,6 +7,7 @@ import { WorkSpaceService } from "Services/WorkSpaceService";
 import type { QuickActionsDefinitionsService } from "./QuickActionsDefinitionsService";
 import type { HelpModal } from "Modals/HelpModal";
 import { AssetsService } from "Services/AssetsService";
+import { Copy } from "Enums/Copy";
 
 export class QuickActionsService {
 
@@ -57,43 +58,43 @@ export class QuickActionsService {
 
         this.editorMenuEventRef = this.plugin.app.workspace.on("editor-menu", (menu, editor, view) => {
             menu.addItem((item) => {
-                item.setTitle("Proofread")
+                item.setTitle(Copy.QuickActionProofread)
                     .setIcon("scan-text")
                     .onClick(async () => this.quickActionsDefinitionsService.proofread(menu, editor, view));
             });
             menu.addItem((item) => {
-                item.setTitle("Beautify")
+                item.setTitle(Copy.QuickActionBeautify)
                     .setIcon("palette")
                     .onClick(async () => this.quickActionsDefinitionsService.beautify(menu, editor, view));
             });
             menu.addItem((item) => {
-                item.setTitle("Apply template")
+                item.setTitle(Copy.QuickActionApplyTemplate)
                     .setIcon("notepad-text-dashed")
                     .onClick(async () => this.quickActionsDefinitionsService.applyTemplate(menu, editor, view));
             });
             menu.addItem((item) => {
-                item.setTitle("Apply links")
+                item.setTitle(Copy.QuickActionApplyLinks)
                     .setIcon("link")
                     .onClick(async () => this.quickActionsDefinitionsService.applyLinks(menu, editor, view));
             });
             menu.addItem((item) => {
-                item.setTitle("Apply tags")
+                item.setTitle(Copy.QuickActionApplyTags)
                     .setIcon("tag")
                     .onClick(async () => this.quickActionsDefinitionsService.applyTags(menu, editor, view));
             });
             menu.addItem((item) => {
-                item.setTitle("Suggest tags")
+                item.setTitle(Copy.QuickActionSuggestTags)
                     .setIcon("tags")
                     .onClick(async () => this.quickActionsDefinitionsService.suggestTags(menu, editor, view));
             });
             menu.addItem((item) => {
-                item.setTitle("Generate frontmatter")
+                item.setTitle(Copy.QuickActionGenerateFrontmatter)
                     .setIcon("list-plus")
                     .onClick(async () => this.quickActionsDefinitionsService.generateFrontmatter(menu, editor, view));
             });
             menu.addSeparator();
             menu.addItem((item) =>
-                item.setTitle("Quick actions")
+                item.setTitle(Copy.QuickActionMenu)
                     .setIcon("circle-question-mark")
                     .onClick(() => {
                         const modal = Resolve<HelpModal>(Services.HelpModal);
@@ -134,48 +135,48 @@ export class QuickActionsService {
             }
 
             const button = createEl("button", { cls: "clickable-icon view-action vault-keeper-ai-actions" });
-            button.setAttribute("aria-label", "AI quick actions");
+            button.setAttribute("aria-label", Copy.QuickActionAriaLabel);
             button.addEventListener("click", (evt) => {
                 const { editor } = view;
                 const menu = new Menu();
                 menu.addItem((item) =>
-                    item.setTitle("Proofread")
+                    item.setTitle(Copy.QuickActionProofread)
                         .setIcon("scan-text")
                         .onClick(async () => this.quickActionsDefinitionsService.proofread(menu, editor, view))
                 );
                 menu.addItem((item) =>
-                    item.setTitle("Beautify")
+                    item.setTitle(Copy.QuickActionBeautify)
                         .setIcon("palette")
                         .onClick(async () => this.quickActionsDefinitionsService.beautify(menu, editor, view))
                 );
                 menu.addItem((item) =>
-                    item.setTitle("Apply template")
+                    item.setTitle(Copy.QuickActionApplyTemplate)
                         .setIcon("notepad-text-dashed")
                         .onClick(async () => this.quickActionsDefinitionsService.applyTemplate(menu, editor, view))
                 );
                 menu.addItem((item) =>
-                    item.setTitle("Apply links")
+                    item.setTitle(Copy.QuickActionApplyLinks)
                         .setIcon("link")
                         .onClick(async () => this.quickActionsDefinitionsService.applyLinks(menu, editor, view))
                 );
                 menu.addItem((item) =>
-                    item.setTitle("Apply tags")
+                    item.setTitle(Copy.QuickActionApplyTags)
                         .setIcon("tag")
                         .onClick(async () => this.quickActionsDefinitionsService.applyTags(menu, editor, view))
                 );
                 menu.addItem((item) =>
-                    item.setTitle("Suggest tags")
+                    item.setTitle(Copy.QuickActionSuggestTags)
                         .setIcon("tags")
                         .onClick(async () => this.quickActionsDefinitionsService.suggestTags(menu, editor, view))
                 );
                 menu.addItem((item) =>
-                    item.setTitle("Generate frontmatter")
+                    item.setTitle(Copy.QuickActionGenerateFrontmatter)
                         .setIcon("list-plus")
                         .onClick(async () => this.quickActionsDefinitionsService.generateFrontmatter(menu, editor, view))
                 );
                 menu.addSeparator();
                 menu.addItem((item) =>
-                    item.setTitle("Quick actions")
+                    item.setTitle(Copy.QuickActionMenu)
                         .setIcon("circle-question-mark")
                         .onClick(() => {
                             const modal = Resolve<HelpModal>(Services.HelpModal);

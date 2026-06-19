@@ -61,6 +61,8 @@ Copy `manifest.json`, `main.js`, and `styles.css` into `.obsidian/plugins/vaultk
    - **Model IDs**: one accepted model ID per line, such as `openclaw/default` or `openclaw/<agentId>`.
    - **Streaming responses**: configure this separately for every provider. Enable it for Responses API SSE streaming with browser CORS support. Leave it disabled for Tailscale Serve or other endpoints that need Obsidian `requestUrl()` compatibility mode.
 
+   The **Language** selector at the top of settings switches the plugin interface between English and Simplified Chinese. Reopen the sidebar after changing it to refresh all visible labels.
+
 3. Assign a model to **Main model**, **Planning model**, and **Quick actions model**. Each assignment may use a different provider.
 
 4. Open the Vaultkeeper icon and choose Read-only, Edit, or Planning mode.

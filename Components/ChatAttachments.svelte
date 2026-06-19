@@ -3,6 +3,7 @@
 	import { setElementIcon } from "Helpers/ElementHelper";
 	import { setIcon } from "obsidian";
 	import { tick } from "svelte";
+	import { Copy } from "Enums/Copy";
 
 	export let attachments: Attachment[] = [];
 
@@ -78,7 +79,7 @@
 					on:click={() => {
 						removeAttachment(attachment);
 					}}
-					aria-label="Remove Attachment"
+					aria-label={Copy.ButtonRemoveAttachment}
 				>
 				</button>
 			</div>

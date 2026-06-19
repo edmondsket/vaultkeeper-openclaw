@@ -13,9 +13,11 @@ import {
     isValidProviderModel,
     modelMatchesProvider
 } from "Enums/ApiProvider";
+import { setCopyLanguage, type DisplayLanguage } from "Enums/Copy";
 
 const DEFAULT_SETTINGS: IVaultkeeperAISettings = {
     firstTimeStart: true,
+    displayLanguage: "en",
 
     chatMode: ChatMode.ReadOnly,
     userInstruction: "",
@@ -60,6 +62,7 @@ const DEFAULT_SETTINGS: IVaultkeeperAISettings = {
 
 export interface IVaultkeeperAISettings {
     firstTimeStart: boolean;
+    displayLanguage?: DisplayLanguage;
 
     chatMode: ChatMode;
     userInstruction: string;
@@ -140,6 +143,7 @@ export class SettingsService {
             migratedSettings.provider = fromModel(migratedSettings.model);
         }
         this.settings = Object.assign({}, DEFAULT_SETTINGS, migratedSettings);
+        setCopyLanguage(this.settings.displayLanguage ?? "en");
         this.migrateOpenClawProviders();
         this.settingsSnapshot = JSON.stringify(this.settings);
         this.ensureValidModels();
