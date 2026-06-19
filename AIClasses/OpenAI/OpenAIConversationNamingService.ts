@@ -1,7 +1,7 @@
 import { Resolve } from "Services/DependencyService";
 import { Services } from "Services/Services";
 import type { IConversationNamingService } from "AIClasses/IConversationNamingService";
-import { AIProvider, AIProviderURL, AIProviderModel } from "Enums/ApiProvider";
+import { AIProvider } from "Enums/ApiProvider";
 import { Role } from "Enums/Role";
 import { NamePrompt } from "AIPrompts/NamePrompt";
 import type { SettingsService } from "Services/SettingsService";
@@ -11,18 +11,22 @@ import type { ResponsesAPINonStreamingResponse } from "./OpenAITypes";
 
 export class OpenAIConversationNamingService implements IConversationNamingService {
     private readonly apiKey: string;
+    private readonly responsesUrl: string;
+    private readonly model: string;
     private readonly abortService: AbortService;
 
     public constructor() {
         const settingsService = Resolve<SettingsService>(Services.SettingsService);
         this.apiKey = settingsService.getApiKeyForProvider(AIProvider.OpenAI);
+        this.responsesUrl = settingsService.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses";
+        this.model = settingsService.settings.openClawModel?.trim() || "openclaw/default";
         this.abortService = Resolve<AbortService>(Services.AbortService);
     }
 
     public async generateName(userPrompt: string): Promise<string> {
         return await this.abortService.abortableOperation(async () => {
             const requestBody = {
-                model: AIProviderModel.OpenAINamer,
+                model: this.model,
                 instructions: NamePrompt,
                 input: [
                     {
@@ -33,7 +37,7 @@ export class OpenAIConversationNamingService implements IConversationNamingServi
                 stream: false
             };
 
-            const response = await fetch(AIProviderURL.OpenAI, {
+            const response = await fetch(this.responsesUrl, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${this.apiKey}`,
@@ -44,7 +48,7 @@ export class OpenAIConversationNamingService implements IConversationNamingServi
             });
 
             if (!response.ok) {
-                Exception.throw(`OpenAI API error: ${response.status} ${response.statusText} - ${await response.text()}`);
+                Exception.throw(`OpenClaw API error: ${response.status} ${response.statusText} - ${await response.text()}`);
             }
 
             const data = await response.json() as ResponsesAPINonStreamingResponse;

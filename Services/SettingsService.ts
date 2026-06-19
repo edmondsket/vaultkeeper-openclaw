@@ -20,10 +20,13 @@ const DEFAULT_SETTINGS: IVaultkeeperAISettings = {
     chatMode: ChatMode.ReadOnly,
     userInstruction: "",
 
-    provider: AIProvider.Claude,
-    model: AIProviderModel.ClaudeSonnet_4_6,
-    planningModel: AIProviderModel.ClaudeOpus_4_8,
-    quickActionModel: AIProviderModel.ClaudeHaiku_4_5,
+    provider: AIProvider.OpenAI,
+    model: AIProviderModel.GPT_5_5,
+    planningModel: AIProviderModel.GPT_5_5,
+    quickActionModel: AIProviderModel.GPT_5_4_Nano,
+
+    openClawResponsesUrl: "http://127.0.0.1:18789/v1/responses",
+    openClawModel: "openclaw/default",
     
     apiKeys: {
         claude: "",
@@ -39,7 +42,7 @@ const DEFAULT_SETTINGS: IVaultkeeperAISettings = {
     enableMemories: false,
     allowUpdatingMemories: true,
 
-    enableWebSearch: true,
+    enableWebSearch: false,
     enableWebViewer: false,
 
     enableContextMenuActions: true,
@@ -58,6 +61,10 @@ export interface IVaultkeeperAISettings {
     model: AIProviderModel;
     planningModel: AIProviderModel;
     quickActionModel: AIProviderModel;
+
+    /** Optional for compatibility with settings saved by upstream Vaultkeeper AI. */
+    openClawResponsesUrl?: string;
+    openClawModel?: string;
 
     apiKeys: {
         claude: string;
@@ -97,7 +104,13 @@ export class SettingsService {
 
     public constructor(loadedSettings: Partial<IVaultkeeperAISettings>) {
         this.plugin = Resolve<VaultkeeperAIPlugin>(Services.VaultkeeperAIPlugin);
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedSettings);
+        const migratedSettings = { ...loadedSettings };
+        // Older Vaultkeeper settings may contain a model without the redundant
+        // provider field. Infer it so migration does not replace the chosen model.
+        if (!migratedSettings.provider && migratedSettings.model && isValidProviderModel(migratedSettings.model)) {
+            migratedSettings.provider = fromModel(migratedSettings.model);
+        }
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, migratedSettings);
         this.settingsSnapshot = JSON.stringify(this.settings);
         this.ensureValidModels();
     }

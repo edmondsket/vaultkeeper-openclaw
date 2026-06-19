@@ -40,7 +40,7 @@ export default class VaultkeeperAIPlugin extends Plugin {
 		});
 
 		const assetsService = Resolve<AssetsService>(Services.AssetsService);
-		this.addRibbonIcon(assetsService.pluginIcon, "Vaultkeeper AI", async () => {
+		this.addRibbonIcon(assetsService.pluginIcon, "Vaultkeeper OpenClaw", async () => {
 			await this.activateMainView();
 		});
 

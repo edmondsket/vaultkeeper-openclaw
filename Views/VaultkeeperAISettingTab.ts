@@ -42,6 +42,32 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
+		new Setting(containerEl)
+			.setName(Copy.SettingOpenClawUrl)
+			.setDesc(Copy.SettingOpenClawUrlDesc)
+			.addText(text => text
+				.setPlaceholder("http://127.0.0.1:18789/v1/responses")
+				.setValue(this.settingsService.settings.openClawResponsesUrl ?? "http://127.0.0.1:18789/v1/responses")
+				.onChange(async value => {
+					await this.settingsService.updateSettings(settings => {
+						settings.openClawResponsesUrl = value.trim();
+					});
+					RegisterAiProvider();
+				}));
+
+		new Setting(containerEl)
+			.setName(Copy.SettingOpenClawModel)
+			.setDesc(Copy.SettingOpenClawModelDesc)
+			.addText(text => text
+				.setPlaceholder("openclaw/default")
+				.setValue(this.settingsService.settings.openClawModel ?? "openclaw/default")
+				.onChange(async value => {
+					await this.settingsService.updateSettings(settings => {
+						settings.openClawModel = value.trim();
+					});
+					RegisterAiProvider();
+				}));
+
 		/* Model Selection Setting */
 		new Setting(containerEl)
 			.setName(Copy.SettingModel)

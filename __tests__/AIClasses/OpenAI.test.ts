@@ -963,7 +963,7 @@ describe('OpenAI', () => {
             expect(mockStreamingService.streamRequest).toHaveBeenCalledWith(
                 expect.any(String), // URL
                 expect.objectContaining({
-                    model: 'gpt-4o',
+                    model: 'openclaw/default',
                     instructions: expect.any(String),
                     input: expect.any(Array),
                     tools: expect.any(Array),
@@ -978,7 +978,7 @@ describe('OpenAI', () => {
             );
         });
 
-        it('should include web_search tool when web search is enabled', async () => {
+        it('should leave web search to OpenClaw when web search is enabled', async () => {
             mockSettingsService.settings.enableWebSearch = true;
 
             const conversation = new Conversation();
@@ -995,8 +995,7 @@ describe('OpenAI', () => {
             const requestBody = callArgs[1];
             const webSearchTool = requestBody.tools.find((t: any) => t.type === 'web_search');
 
-            expect(webSearchTool).toBeDefined();
-            expect(webSearchTool.type).toBe('web_search');
+            expect(webSearchTool).toBeUndefined();
         });
     });
 

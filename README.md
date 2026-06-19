@@ -1,6 +1,8 @@
-# Vaultkeeper AI for Obsidian
+# Vaultkeeper OpenClaw for Obsidian
 
-> A powerful AI assistant plugin that brings Claude, Gemini, OpenAI, and Mistral directly into your Obsidian vault with intelligent note management capabilities.
+> Use an OpenClaw Gateway through the OpenAI-compatible Responses API to work with your Obsidian vault on desktop and mobile.
+
+This is an MIT-licensed fork of [Vaultkeeper AI](https://github.com/andy-stack/vaultkeeper-ai). It keeps Vaultkeeper's note tools and review flow, while making the Responses endpoint and model configurable for OpenClaw.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Obsidian Plugin](https://img.shields.io/badge/Obsidian-Plugin-purple.svg)](https://obsidian.md)
@@ -11,7 +13,7 @@
 
 ## Features
 
-- **Multi-Provider AI Support** - Switch seamlessly between Claude (Anthropic), Gemini (Google), OpenAI, and Mistral models
+- **OpenClaw Responses API** - Configurable Gateway endpoint, model/agent ID, and Bearer token
 - **Three Chat Modes**
   - 🔍 **Read-Only Mode**: AI can search, read, and list your notes safely
   - ✏️ **Edit Mode**: AI can create, edit, delete, and move notes and folders (when you need it)
@@ -21,44 +23,47 @@
 - **Custom System Instructions** - Create and switch between personalized AI behaviors
 - **Conversation Management** - Persistent chat history with automatic conversation naming
 - **Privacy Controls** - Exclude sensitive files and directories from AI access with glob patterns
-- **Files Support (PDF, Documents, Images, etc)** - Search through PDF and Office documents (DOCX, PPTX, XLSX) and allow AI to read binary files directly (PDFs, Office/ODF documents, images, etc)
+- **Local document search** - Search Markdown, PDF, and Office document text in the vault
 - **AI Memory** - Persist vault conventions, preferences, and workflows across sessions so the AI remembers how you work
-- **Web Search** - Toggle web search on per-message so the AI can look up current information
+- **OpenClaw tools** - Web and other server-side capabilities are controlled by the selected OpenClaw agent
 - **Web Viewer** - Allow the AI to fetch and read web page content directly
 - **Quick Actions** - Lightweight, single-shot AI operations on selected text, available via right-click context menu and a dedicated editor toolbar button — both toggleable in settings and fully supported on mobile
 - **Mobile Compatible** - Full functionality on mobile devices with touch-friendly controls
 - **Streaming Responses** - See AI responses as they're generated
-- **Local & Private** - API keys stored locally, no data sent to third parties
+- **Local settings** - The Gateway token is stored in Obsidian's local plugin data
 
 ## Installation
 
-### Manual Installation
+### BRAT (recommended on desktop and Android)
 
-1. Download the latest release from the [Releases page](https://github.com/andy-stack/vaultkeeper-ai/releases)
-2. Extract the files into your vault's `.obsidian/plugins/vaultkeeper-ai/` directory
-3. Reload Obsidian
-4. Enable "Vaultkeeper AI" in Settings → Community Plugins
+1. Install the BRAT community plugin.
+2. Choose **Add Beta plugin** and enter this repository URL.
+3. Enable **Vaultkeeper OpenClaw** in Community Plugins.
 
-### From Community Plugins
+### Manual installation
 
-1. Open Obsidian Settings
-2. Navigate to Community Plugins
-3. Search for "Vaultkeeper AI"
-4. Click Install, then Enable
+Copy `manifest.json`, `main.js`, and `styles.css` into `.obsidian/plugins/vaultkeeper-openclaw/`, reload Obsidian, then enable the plugin.
 
 ## Quick Start
 
-1. **Add API Keys**: Open plugin settings and add at least one API key:
-   - **Claude**: Get from [Anthropic Console](https://console.anthropic.com/)
-   - **Gemini**: Get from [Google AI Studio](https://aistudio.google.com/)
-   - **OpenAI**: Get from [OpenAI Platform](https://platform.openai.com/)
-   - **Mistral**: Get from [Mistral Console](https://console.mistral.ai/)
+1. Enable the Responses endpoint on the OpenClaw host:
 
-2. **Select a Model**: Choose your preferred AI model from the dropdown
+   ```sh
+   openclaw config set gateway.http.endpoints.responses.enabled true
+   openclaw gateway restart
+   ```
 
-3. **Start Chatting**: Click the Vaultkeeper AI icon in the left sidebar to open the chat window
+2. In plugin settings, set:
 
-4. **Try the Reference System**:
+   - **OpenClaw Responses URL**: `http://127.0.0.1:18789/v1/responses` for a desktop running OpenClaw locally. Android must use a reachable HTTPS/Tailscale URL; the phone's `127.0.0.1` is the phone itself.
+   - **OpenClaw Model**: `openclaw/default` or `openclaw/<agentId>`.
+   - **Gateway Token**: the Gateway token/password used for Bearer authentication.
+
+3. Leave the model dropdown on an OpenClaw/OpenAI entry. The custom OpenClaw model above is what is sent to the Gateway.
+
+4. Open the Vaultkeeper icon and choose Read-only, Edit, or Planning mode.
+
+5. Try the Reference System:
    - Type `@` to reference files
    - Type `#` to reference tags
    - Type `/` to reference folders

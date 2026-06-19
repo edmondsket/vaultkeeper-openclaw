@@ -3,7 +3,7 @@ import type { IStreamChunk } from "Services/StreamingService";
 import type { Conversation } from "Conversations/Conversation";
 import type { ConversationContent } from "Conversations/ConversationContent";
 import type { Attachment } from "Conversations/Attachment";
-import { AIProvider, AIProviderURL } from "Enums/ApiProvider";
+import { AIProvider } from "Enums/ApiProvider";
 import { AIToolCall } from "AIClasses/AIToolCall";
 import { fromString as aiToolFromString } from "Enums/AITool";
 import type { IAIToolDefinition } from "AIClasses/ToolDefinitions/IAIToolDefinition";
@@ -46,7 +46,7 @@ export class OpenAI extends BaseAIClass {
         const tools = this.getTools();
 
         const requestBody = {
-            model: this.model(),
+            model: this.settingsService.settings.openClawModel?.trim() || "openclaw/default",
             instructions: systemPrompt,
             input: input,
             tools: tools,
@@ -60,7 +60,7 @@ export class OpenAI extends BaseAIClass {
         };
 
         yield* this.streamingService.streamRequest(
-            AIProviderURL.OpenAI,
+            this.settingsService.settings.openClawResponsesUrl?.trim() || "http://127.0.0.1:18789/v1/responses",
             requestBody,
             (chunk: string) => this.parseStreamChunk(chunk),
             headers,
@@ -367,11 +367,8 @@ export class OpenAI extends BaseAIClass {
     }
 
     private getTools(): (OpenAIToolTool | { type: string })[] {
-        if (this.settingsService.settings.enableWebSearch) {
-            return [{
-                type: "web_search"
-            }, ...this.mapFunctionDefinitions(this.aiToolDefinitions)];
-        }
+        // OpenClaw supplies its own server-side tools. Only send Vaultkeeper's
+        // client-side note tools through the Responses API.
         return this.mapFunctionDefinitions(this.aiToolDefinitions);
     }
     

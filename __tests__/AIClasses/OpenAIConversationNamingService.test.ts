@@ -107,7 +107,7 @@ describe('OpenAIConversationNamingService', () => {
             );
 
             const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body);
-            expect(requestBody.model).toBe(AIProviderModel.OpenAINamer);
+            expect(requestBody.model).toBe('openclaw/default');
             expect(requestBody.instructions).toBeDefined();
             expect(requestBody.input).toHaveLength(1);
             expect(requestBody.input[0].role).toBe(Role.User);
@@ -165,7 +165,7 @@ describe('OpenAIConversationNamingService', () => {
             });
 
             await expect(service.generateName('Test'))
-                .rejects.toThrow('OpenAI API error: 429 Too Many Requests - Rate limit exceeded');
+                .rejects.toThrow('OpenClaw API error: 429 Too Many Requests - Rate limit exceeded');
         });
 
         it('should throw error when response has no content', async () => {

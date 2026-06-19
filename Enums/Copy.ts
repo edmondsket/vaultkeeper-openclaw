@@ -24,14 +24,18 @@ export enum Copy {
 
     // AI Provider Groups
     ProviderClaude = "Claude",
-    ProviderOpenAI = "OpenAI",
+    ProviderOpenAI = "OpenClaw (Responses API)",
     ProviderGemini = "Gemini",
     ProviderMistral = "Mistral",
 
     // Settings Copy
     SettingModel = "Model",
     SettingPlanningModel = "Planning Model",
-    SettingApiKey = "API Key",
+    SettingApiKey = "Gateway Token",
+    SettingOpenClawUrl = "OpenClaw Responses URL",
+    SettingOpenClawUrlDesc = "Full /v1/responses endpoint. On Android, use an HTTPS or Tailscale address reachable from the phone; 127.0.0.1 only works when OpenClaw runs on the same device.",
+    SettingOpenClawModel = "OpenClaw Model",
+    SettingOpenClawModelDesc = "Use openclaw/default or openclaw/<agentId>.",
     SettingFileExclusions = "File Exclusions",
     SettingContext = "Context",
     SettingSearchResultsLimit = "Search Results Limit",
@@ -53,7 +57,7 @@ export enum Copy {
     SettingPlanningModelTip = "Tip: You can reduce cost by using a more powerful model for planning and a cheaper model for the regular agent.",
     SettingQuickActionModel = "Quick Actions Model",
     SettingQuickActionModelDesc = "Select the AI model to use for quick actions. A fast, lightweight model is recommended.",
-    SettingApiKeyDesc = "Enter your API key here.",
+    SettingApiKeyDesc = "Enter the OpenClaw Gateway token (or password) used for Bearer authentication.",
     SettingFileExclusionsDesc = "Set which directories and files the AI should ignore. Enter one path per line - supports glob patterns like folder/**, *.md",
     SettingSearchResultsLimitDesc = "Set the maximum number of results provided to the AI when it searches through files in your vault. Higher values provide more context but increase search time.",
     SettingSnippetSizeLimitDesc = "Set the character limit of search previews provided to the AI when it searches through files in your vault. Higher values provide more context per result.",
@@ -64,7 +68,7 @@ export enum Copy {
     SettingAccessMemories = "Memories let the AI retain preferences and context across conversations. You can view and edit them at any time.",
 
     // Settings Placeholders
-    PlaceholderEnterApiKey = "Enter your API key",
+    PlaceholderEnterApiKey = "Enter your Gateway token",
     PlaceholderFileExclusions = "Examples:\n\nprivate/**\n*.secret.md\njournal/personal/**",
 
     // Settings Tooltips

@@ -27,7 +27,9 @@ describe('SettingsService', () => {
             settingsService = new SettingsService({});
 
             expect(settingsService.settings.firstTimeStart).toBe(true);
-            expect(settingsService.settings.model).toBe(AIProviderModel.ClaudeSonnet_4_6);
+            expect(settingsService.settings.model).toBe(AIProviderModel.GPT_5_5);
+            expect(settingsService.settings.openClawResponsesUrl).toBe('http://127.0.0.1:18789/v1/responses');
+            expect(settingsService.settings.openClawModel).toBe('openclaw/default');
             expect(settingsService.settings.apiKeys).toEqual({
                 claude: '',
                 openai: '',
