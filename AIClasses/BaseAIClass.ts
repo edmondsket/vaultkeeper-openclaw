@@ -7,7 +7,7 @@ import type { AIProvider } from "Enums/ApiProvider";
 import type { IAIToolDefinition } from "AIClasses/ToolDefinitions/IAIToolDefinition";
 import type { ConversationContent } from "Conversations/ConversationContent";
 import type { Attachment } from "Conversations/Attachment";
-import type { SettingsService } from "Services/SettingsService";
+import type { SettingsService, IOpenClawModelSelection } from "Services/SettingsService";
 import type { StreamingService } from "Services/StreamingService";
 import type { StoredToolCall, StoredFunctionResponse } from "AIClasses/Schemas/AIToolTypes";
 import { Exception } from "Helpers/Exception";
@@ -32,6 +32,8 @@ export abstract class BaseAIClass implements IAIClass {
     private _agentType: AgentType = AgentType.Main;
     private _aiToolDefinitions: IAIToolDefinition[] = [];
     private _aiToolUsageMode: AIToolUsageMode = AIToolUsageMode.Auto;
+
+    public modelSelectionOverride?: IOpenClawModelSelection;
 
     protected constructor(provider: AIProvider) {
         this.provider = provider;

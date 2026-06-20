@@ -6,12 +6,13 @@ import { AIToolUsageMode } from "Enums/AIToolUsageMode";
 import type { IChatServiceCallbacks } from "Services/ChatService";
 import { ConversationContent } from "Conversations/ConversationContent";
 import { Role } from "Enums/Role";
+import type { IOpenClawModelSelection } from "Services/SettingsService";
 
 export class QuickAgent extends BaseAgent {
 
-    public async quickAction(action: string, context: string): Promise<string | null> {
+    public async quickAction(action: string, context: string, modelSelection?: IOpenClawModelSelection): Promise<string | null> {
         
-        this.setAgentPromptAndTools(action);
+        this.setAgentPromptAndTools(action, modelSelection);
 
         const conversation = new Conversation();
         const conversationContent = new ConversationContent({
@@ -27,7 +28,7 @@ export class QuickAgent extends BaseAgent {
         return result;
     }
 
-    private setAgentPromptAndTools(instruction: string): void {
+    private setAgentPromptAndTools(instruction: string, modelSelection?: IOpenClawModelSelection): void {
         if (!this.ai) {
             Exception.throw("Error: No AI provider has been set!");
         }
@@ -36,6 +37,7 @@ export class QuickAgent extends BaseAgent {
         this.ai.systemPrompt = instruction;
         this.ai.userInstruction = ""; // do not include user instruction for quick agent
         this.ai.aiToolDefinitions = []; // no tools for quick agent
+        this.ai.modelSelectionOverride = modelSelection;
     }
 
     private callbacks(): IChatServiceCallbacks {

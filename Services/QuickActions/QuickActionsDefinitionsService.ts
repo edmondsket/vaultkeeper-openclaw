@@ -9,7 +9,7 @@ import Spinner from "Components/Spinner.svelte";
 import { mount } from "svelte";
 import { ApplyTemplatePrompt } from "AIPrompts/QuickActionPrompts/ApplyTemplatePrompt";
 import { Copy } from "Enums/Copy";
-import type { SettingsService } from "../SettingsService";
+import type { SettingsService, ICustomSkill, IOpenClawModelSelection } from "../SettingsService";
 import { openPluginSettings, replaceCopy, splitFrontmatter } from "Helpers/Helpers";
 import { mergeFrontmatterFields, mergeListIntoFrontmatter, parseFrontmatterYaml } from "Helpers/FrontmatterHelpers";
 import { ProofreadPrompt } from "AIPrompts/QuickActionPrompts/ProofreadPrompt";
@@ -338,6 +338,58 @@ export class QuickActionsDefinitionsService {
         });
     }
 
+    /* Custom Skills */
+
+    public async executeCustomSkill(skill: ICustomSkill, editor: Editor, view: MarkdownView | MarkdownFileInfo) {
+        await this.asSerialAction(skill.name, async () => {
+            const file = view.file;
+            if (!file) return;
+
+            const content = await this.fileSystemService.readFile(file);
+            if (content instanceof Error) return;
+
+            let inputText: string;
+            if (skill.applyTo === "selection") {
+                const selection = editor.getSelection();
+                if (selection.trim() === "") {
+                    const { body } = splitFrontmatter(content);
+                    if (body.trim() === "") return;
+                    inputText = body;
+                } else {
+                    inputText = selection;
+                }
+            } else {
+                const { body } = splitFrontmatter(content);
+                if (body.trim() === "") return;
+                inputText = body;
+            }
+
+            const notice = this.showNotice(replaceCopy(Copy.CustomSkillRunning, [skill.name]));
+            try {
+                const result = await this.performAction(skill.prompt, inputText, skill.modelSelection);
+                if (result && result.trim() !== "") {
+                    switch (skill.outputMode) {
+                        case "replace":
+                            await this.fileSystemService.patchFile(file, [inputText], [result], false, false);
+                            break;
+                        case "append": {
+                            const fileContent = await this.fileSystemService.readFile(file);
+                            if (fileContent instanceof Error) break;
+                            const newContent = fileContent + "\n\n" + result;
+                            await this.fileSystemService.writeToFile(file, newContent, false, false);
+                            break;
+                        }
+                        case "notice":
+                            new Notice(result, 10000);
+                            break;
+                    }
+                }
+            } finally {
+                notice.hide();
+            }
+        });
+    }
+
     /* Helpers */
 
     private userSelectFile(plugin: VaultkeeperAIPlugin, onSelected: (file: TFile) => Promise<void>): void {
@@ -363,14 +415,14 @@ export class QuickActionsDefinitionsService {
         }
     }
 
-    private async performAction(action: string, context: string): Promise<string | null> {
+    private async performAction(action: string, context: string, modelSelection?: IOpenClawModelSelection): Promise<string | null> {
         if (this.settingsService.getApiKeyForCurrentModel().trim() == "") {
             openPluginSettings(this.plugin);
             return null;
         }
         const agent = Resolve<QuickAgent>(Services.QuickAgent);
         agent.resolveAIProvider();
-        return agent.quickAction(action, context);
+        return agent.quickAction(action, context, modelSelection);
     }
 
     private showNotice(message: string, durationMs: number = 0): Notice {

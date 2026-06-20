@@ -153,7 +153,9 @@ describe('SettingsService', () => {
                 enableContextMenuActions: false,
                 enableToolbarActions: false,
                 hideDrawerElements: false,
-                chatMode: ChatMode.ReadOnly
+                chatMode: ChatMode.ReadOnly,
+                customSkills: [],
+                s3Config: { enabled: false, endpoint: "", region: "us-east-1", accessKeyId: "", secretAccessKey: "", bucket: "", publicBaseUrl: "", pathPrefix: "vaultkeeper-attachments/" }
             };
             settingsService = new SettingsService(loadedSettings);
         });
@@ -204,7 +206,9 @@ describe('SettingsService', () => {
                 enableContextMenuActions: false,
                 enableToolbarActions: false,
                 hideDrawerElements: false,
-                chatMode: ChatMode.ReadOnly
+                chatMode: ChatMode.ReadOnly,
+                customSkills: [],
+                s3Config: { enabled: false, endpoint: "", region: "us-east-1", accessKeyId: "", secretAccessKey: "", bucket: "", publicBaseUrl: "", pathPrefix: "vaultkeeper-attachments/" }
             };
             settingsService = new SettingsService(loadedSettings);
 
@@ -235,7 +239,9 @@ describe('SettingsService', () => {
                 enableContextMenuActions: false,
                 enableToolbarActions: false,
                 hideDrawerElements: false,
-                chatMode: ChatMode.ReadOnly
+                chatMode: ChatMode.ReadOnly,
+                customSkills: [],
+                s3Config: { enabled: false, endpoint: "", region: "us-east-1", accessKeyId: "", secretAccessKey: "", bucket: "", publicBaseUrl: "", pathPrefix: "vaultkeeper-attachments/" }
             };
             settingsService = new SettingsService(loadedSettings);
 
@@ -266,7 +272,9 @@ describe('SettingsService', () => {
                 enableContextMenuActions: false,
                 enableToolbarActions: false,
                 hideDrawerElements: false,
-                chatMode: ChatMode.ReadOnly
+                chatMode: ChatMode.ReadOnly,
+                customSkills: [],
+                s3Config: { enabled: false, endpoint: "", region: "us-east-1", accessKeyId: "", secretAccessKey: "", bucket: "", publicBaseUrl: "", pathPrefix: "vaultkeeper-attachments/" }
             };
             settingsService = new SettingsService(loadedSettings);
 
@@ -325,7 +333,9 @@ describe('SettingsService', () => {
                 enableContextMenuActions: false,
                 enableToolbarActions: false,
                 hideDrawerElements: false,
-                chatMode: ChatMode.ReadOnly
+                chatMode: ChatMode.ReadOnly,
+                customSkills: [],
+                s3Config: { enabled: false, endpoint: "", region: "us-east-1", accessKeyId: "", secretAccessKey: "", bucket: "", publicBaseUrl: "", pathPrefix: "vaultkeeper-attachments/" }
             };
             settingsService = new SettingsService(loadedSettings);
         });
@@ -393,7 +403,9 @@ describe('SettingsService', () => {
                 enableContextMenuActions: false,
                 enableToolbarActions: false,
                 hideDrawerElements: false,
-                chatMode: ChatMode.ReadOnly
+                chatMode: ChatMode.ReadOnly,
+                customSkills: [],
+                s3Config: { enabled: false, endpoint: "", region: "us-east-1", accessKeyId: "", secretAccessKey: "", bucket: "", publicBaseUrl: "", pathPrefix: "vaultkeeper-attachments/" }
             };
             settingsService = new SettingsService(loadedSettings);
             mockPlugin.saveData.mockClear();
