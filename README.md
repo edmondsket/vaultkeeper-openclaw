@@ -31,6 +31,7 @@ This is an MIT-licensed fork of [Vaultkeeper AI](https://github.com/andy-stack/v
 - **Mobile Compatible** - Full functionality on mobile devices with touch-friendly controls
 - **Streaming Responses** - See AI responses as they're generated
 - **Model-generated media** - Save returned images and files into the vault, with inline image previews and persistent file cards
+- **In-chat model switching** - Change the main conversation provider and model directly above the message input
 - **Local settings** - The Gateway token is stored in Obsidian's local plugin data
 
 ## Installation

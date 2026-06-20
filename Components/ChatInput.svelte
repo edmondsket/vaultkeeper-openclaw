@@ -26,6 +26,7 @@
   import { ChatMode, chatModeAllowsEdits, iconForChatMode } from "Enums/ChatMode";
 	import { hideDrawerElements, restoreDrawerElements } from "Helpers/ElementHelper";
 	import { replaceCopy } from "Helpers/Helpers";
+  import ChatModelSelector from "./ChatModelSelector.svelte";
 
   export let attachments: Attachment[] = [];
 
@@ -577,6 +578,7 @@
 
 <div id="input-container" class:stacked class:compact bind:this={inputContainerElement}>
   <div id="input-display-container" style:padding-top={attachments.length > 0 ? "var(--size-4-2)" : 0}>
+    <ChatModelSelector disabled={isSubmitting || inputMode !== InputMode.Normal}/>
     <InputDisplay bind:this={inputDisplay}/>
   </div>
 
