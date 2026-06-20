@@ -348,18 +348,18 @@ export class QuickActionsDefinitionsService {
             const content = await this.fileSystemService.readFile(file);
             if (content instanceof Error) return;
 
+            const { body } = splitFrontmatter(content);
+            const selection = editor.getSelection();
+
             let inputText: string;
-            if (skill.applyTo === "selection") {
-                const selection = editor.getSelection();
-                if (selection.trim() === "") {
-                    const { body } = splitFrontmatter(content);
-                    if (body.trim() === "") return;
-                    inputText = body;
-                } else {
-                    inputText = selection;
-                }
+            const isReplacingSelection = skill.outputMode === "replace_selection" || skill.outputMode === "insert_at_cursor";
+
+            if (isReplacingSelection && selection.trim() !== "") {
+                inputText = selection;
+            } else if (skill.outputMode === "replace_body" || (isReplacingSelection && selection.trim() === "")) {
+                if (body.trim() === "") return;
+                inputText = body;
             } else {
-                const { body } = splitFrontmatter(content);
                 if (body.trim() === "") return;
                 inputText = body;
             }
@@ -369,18 +369,16 @@ export class QuickActionsDefinitionsService {
                 const result = await this.performAction(skill.prompt, inputText, skill.modelSelection);
                 if (result && result.trim() !== "") {
                     switch (skill.outputMode) {
-                        case "replace":
+                        case "replace_selection":
+                        case "replace_body":
                             await this.fileSystemService.patchFile(file, [inputText], [result], false, false);
                             break;
-                        case "append": {
-                            const fileContent = await this.fileSystemService.readFile(file);
-                            if (fileContent instanceof Error) break;
-                            const newContent = fileContent + "\n\n" + result;
-                            await this.fileSystemService.writeToFile(file, newContent, false, false);
+                        case "insert_at_cursor":
+                            editor.replaceSelection(result);
                             break;
-                        }
-                        case "notice":
-                            new Notice(result, 10000);
+                        case "copy_to_clipboard":
+                            await navigator.clipboard.writeText(result);
+                            new Notice("Result copied to clipboard", 3000);
                             break;
                     }
                 }

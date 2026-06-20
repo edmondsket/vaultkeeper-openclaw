@@ -29,7 +29,6 @@ export class Services {
     static DiffService = Symbol("DiffService");
     static MemoriesService = Symbol("MemoriesService");
     static DebugService = Symbol("DebugService");
-    static S3Service = Symbol("S3Service");
 
     // stores
     static SearchStateStore = Symbol("SearchStateStore");

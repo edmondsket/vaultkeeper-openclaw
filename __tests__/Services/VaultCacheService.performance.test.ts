@@ -112,7 +112,7 @@ const mockSettings: IVaultkeeperAISettings = {
 	hideDrawerElements: false,
 	chatMode: ChatMode.Edit,
 	customSkills: [],
-	s3Config: { enabled: false, endpoint: "", region: "us-east-1", accessKeyId: "", secretAccessKey: "", bucket: "", publicBaseUrl: "", pathPrefix: "vaultkeeper-attachments/" }
+	s3Config: { enabled: false, endpoint: "", region: "us-east-1", accessKey: "", secretKey: "", bucket: "", publicUrlBase: "", pathPrefix: "vaultkeeper-attachments/" }
 };
 
 let settingsService: SettingsService;
