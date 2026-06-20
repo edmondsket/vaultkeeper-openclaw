@@ -88,6 +88,10 @@ export abstract class StringTools {
 
     public static async computeSHA256Hash(base64: string): Promise<string> {
         const bytes = this.toBytes(base64);
+        return this.computeSHA256Bytes(bytes);
+    }
+
+    public static async computeSHA256Bytes(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
         const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -138,4 +142,4 @@ export abstract class StringTools {
         });
     }
 
-} 
+}

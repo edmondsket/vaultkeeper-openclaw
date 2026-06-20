@@ -1107,6 +1107,55 @@ describe('OpenAI', () => {
         });
     });
 
+    describe('response media parsing', () => {
+        beforeEach(() => {
+            (openai as any).mediaProviderResponsesUrl = 'https://provider.example/v1/responses';
+            (openai as any).mediaProviderApiKey = 'provider-token';
+            (openai as any).receivedMediaKeys.clear();
+        });
+
+        it('extracts a generated base64 image from a completed output item', () => {
+            const result = (openai as any).parseStreamChunk(JSON.stringify({
+                type: 'response.output_item.done',
+                item_id: 'image-item',
+                output_index: 0,
+                item: { type: 'image_generation_call', id: 'call-image', result: 'aW1hZ2U=' }
+            }));
+
+            expect(result.media).toEqual([expect.objectContaining({
+                base64: 'aW1hZ2U=',
+                mimeType: 'image/png',
+                providerResponsesUrl: 'https://provider.example/v1/responses',
+                apiKey: 'provider-token'
+            })]);
+        });
+
+        it('extracts native output files without scanning markdown URLs', () => {
+            const media = (openai as any).extractResponseMedia({
+                type: 'message',
+                content: [
+                    { type: 'output_text', text: '![remote](https://example.com/not-downloaded.png)' },
+                    { type: 'output_file', file_id: 'file-123', filename: 'report.pdf', mime_type: 'application/pdf' }
+                ]
+            });
+
+            expect(media).toHaveLength(1);
+            expect(media[0]).toEqual(expect.objectContaining({
+                fileId: 'file-123',
+                fileName: 'report.pdf',
+                mimeType: 'application/pdf'
+            }));
+        });
+
+        it('deduplicates media repeated by part and completion events', () => {
+            const item = { type: 'output_image', base64: 'c2FtZQ==', mime_type: 'image/png' };
+            const first = (openai as any).uniqueResponseMedia((openai as any).extractResponseMedia(item));
+            const second = (openai as any).uniqueResponseMedia((openai as any).extractResponseMedia(item));
+            expect(first).toHaveLength(1);
+            expect(second).toHaveLength(0);
+        });
+    });
+
     describe('formatBinaryFiles', () => {
         it('should format PDF files with file_id reference', () => {
             const attachment = {

@@ -9,9 +9,12 @@
   import type { ConversationContent } from "Conversations/ConversationContent";
 	import { tick } from "svelte";
 	import { getOuterHeight, setElementIcon } from "Helpers/ElementHelper";
-	import { setIcon } from "obsidian";
+	import { setIcon, TFile } from "obsidian";
 	import { fade } from "svelte/transition";
 	import { Copy } from "Enums/Copy";
+	import { Path } from "Enums/Path";
+	import type { ConversationMedia } from "Conversations/ConversationMedia";
+	import type VaultkeeperAIPlugin from "main";
 
   export let messages: ConversationContent[] = [];
   export let currentThought: string | null = null;
@@ -111,8 +114,40 @@
   let streamingIndicatorElement: HTMLElement | undefined;
 
   let streamingMarkdownService: StreamingMarkdownService = Resolve<StreamingMarkdownService>(Services.StreamingMarkdownService);
+  const plugin = Resolve<VaultkeeperAIPlugin>(Services.VaultkeeperAIPlugin);
 
   let messageElements: { element: HTMLElement, index: number, role: Role }[] = [];
+
+  function getMediaFile(media: ConversationMedia): TFile | null {
+    if (!media.filePath) return null;
+    const file = plugin.app.vault.getAbstractFileByPath(`${Path.Conversations}/${media.filePath}`);
+    return file instanceof TFile ? file : null;
+  }
+
+  function getMediaResourceUrl(media: ConversationMedia): string {
+    const file = getMediaFile(media);
+    return file ? plugin.app.vault.getResourcePath(file) : "";
+  }
+
+  async function openMedia(media: ConversationMedia) {
+    const file = getMediaFile(media);
+    if (!file) return;
+    try {
+      await plugin.app.workspace.getLeaf("tab").openFile(file);
+    } catch {
+      const link = document.createElement("a");
+      link.href = plugin.app.vault.getResourcePath(file);
+      link.download = media.fileName;
+      link.click();
+    }
+  }
+
+  function getMediaError(media: ConversationMedia): string {
+    const error = media.error?.toLowerCase() ?? "";
+    if (error.includes("limit") || error.includes("too large") || error.includes("exceeds")) return Copy.MediaTooLarge;
+    if (error.includes("download") || error.includes("http") || error.includes("timed out")) return Copy.MediaDownloadFailed;
+    return Copy.MediaFailed;
+  }
 
   function getGreetingByTime(): string {
     const hour = new Date().getHours();
@@ -166,7 +201,7 @@
   <div class="chat-area" bind:this={chatContainer} on:scroll={updateScrolledState}>
     {#each messages as message, index}
       {@const content = message.getDisplayContent()}
-      {#if message.shouldDisplayContent && content.trim() !== ""}
+      {#if message.shouldDisplayContent && (content.trim() !== "" || message.media.length > 0)}
         {#if message.role === Role.User}
           <div class="message-container {Role.User}" use:trackingAction={{ index, role: Role.User }}>
             <div class="message-bubble {Role.User}">
@@ -198,9 +233,34 @@
           {@const messageId = message.timestamp.getTime().toString()}
           <div class="message-container {Role.Assistant}" use:trackingAction={{ index, role: Role.Assistant }}>
             <div class="message-bubble {Role.Assistant}">
-              <div class="markdown-content">
-                <div use:messageRenderAction={message} class="streaming-content"></div>
-              </div>
+              {#if content.trim() !== ""}
+                <div class="markdown-content">
+                  <div use:messageRenderAction={message} class="streaming-content"></div>
+                </div>
+              {/if}
+              {#if message.media.length > 0}
+                <div class="response-media-grid">
+                  {#each message.media as media}
+                    {#if media.status === "error" || !media.filePath}
+                      <div class="response-media-card response-media-error">
+                        <div class="response-media-name">{media.fileName}</div>
+                        <div class="response-media-meta" title={media.error}>{getMediaError(media)}</div>
+                      </div>
+                    {:else if media.isPreviewableImage}
+                      <button class="response-media-image" aria-label={`${Copy.MediaOpen} ${media.fileName}`} on:click={() => openMedia(media)}>
+                        <img src={getMediaResourceUrl(media)} alt={media.fileName} loading="lazy" />
+                        <span>{media.fileName} · {media.sizeMB} MB</span>
+                      </button>
+                    {:else}
+                      <button class="response-media-card" on:click={() => openMedia(media)}>
+                        <div class="response-media-name">{media.fileName}</div>
+                        <div class="response-media-meta">{media.mimeType} · {media.sizeMB} MB</div>
+                        <div class="response-media-open">{Copy.MediaOpen}</div>
+                      </button>
+                    {/if}
+                  {/each}
+                </div>
+              {/if}
             </div>
           </div>
         {/if}
@@ -468,5 +528,55 @@
       padding: 0;
       font-size: var(--font-smallest);
       color: var(--text-muted);
+  }
+
+  .response-media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--size-4-2);
+    margin-top: var(--size-4-2);
+  }
+
+  .response-media-image,
+  .response-media-card {
+    appearance: none;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    padding: var(--size-4-2);
+    text-align: left;
+    overflow: hidden;
+  }
+
+  .response-media-image img {
+    display: block;
+    width: 100%;
+    max-height: 360px;
+    object-fit: contain;
+    border-radius: var(--radius-s);
+    background: var(--background-primary);
+  }
+
+  .response-media-image span,
+  .response-media-meta {
+    display: block;
+    margin-top: var(--size-4-1);
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+  }
+
+  .response-media-name {
+    font-weight: var(--font-semibold);
+    overflow-wrap: anywhere;
+  }
+
+  .response-media-open {
+    margin-top: var(--size-4-2);
+    color: var(--interactive-accent);
+  }
+
+  .response-media-error {
+    border-color: var(--text-error);
   }
 </style>

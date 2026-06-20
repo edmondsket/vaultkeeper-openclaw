@@ -10,8 +10,15 @@ import type { IAIFileService } from "AIClasses/IAIFileService";
 import { Reference } from "Conversations/Reference";
 import { arrayBufferToBase64 } from "obsidian";
 import { StringTools } from "Helpers/StringTools";
+import { requestUrl } from "obsidian";
+import { ConversationMedia } from "Conversations/ConversationMedia";
+import type { IPersistedResponseMedia, IResponseMedia } from "Types/ResponseMedia";
 
 export class ConversationFileSystemService {
+
+    public static readonly MAX_MEDIA_ITEM_BYTES = 20_000_000;
+    public static readonly MAX_MEDIA_RESPONSE_BYTES = 50_000_000;
+    private static readonly MEDIA_DOWNLOAD_TIMEOUT_MS = 30_000;
 
     private fileSystemService: FileSystemService;
     private aiFileService: IAIFileService | undefined;
@@ -26,6 +33,139 @@ export class ConversationFileSystemService {
 
     public resolveAIFileService() {
         this.aiFileService = Resolve<IAIFileService>(Services.IAIFileService);
+    }
+
+    public async persistResponseMedia(items: IResponseMedia[], byteBudget: number): Promise<IPersistedResponseMedia> {
+        const media: ConversationMedia[] = [];
+        let bytesStored = 0;
+
+        for (let index = 0; index < items.length; index++) {
+            const item = items[index];
+            const fallbackName = item.mimeType?.startsWith("image/") ? `generated-image-${index + 1}` : `generated-file-${index + 1}`;
+            try {
+                const resolved = await this.resolveResponseMedia(item);
+                if (resolved.bytes.byteLength > ConversationFileSystemService.MAX_MEDIA_ITEM_BYTES) {
+                    throw new Error("Media exceeds the 20 MB item limit");
+                }
+                if (bytesStored + resolved.bytes.byteLength > byteBudget) {
+                    throw new Error("Media exceeds the 50 MB response limit");
+                }
+
+                const mimeType = item.mimeType || resolved.mimeType || "application/octet-stream";
+                const originalName = item.fileName || resolved.fileName || fallbackName;
+                const extension = this.mediaExtension(originalName, mimeType);
+                const hash = await StringTools.computeSHA256Bytes(new Uint8Array(resolved.bytes));
+                const filePath = `${Path.Attachments}/${hash}.${extension}`;
+                const result = await this.fileSystemService.writeBinaryFile(filePath, resolved.bytes, true);
+                if (result instanceof Error) throw result;
+
+                bytesStored += resolved.bytes.byteLength;
+                media.push(new ConversationMedia(
+                    this.ensureFileExtension(originalName, extension),
+                    mimeType,
+                    resolved.bytes.byteLength,
+                    filePath.replace(`${Path.Conversations}/`, "")
+                ));
+            } catch (error) {
+                media.push(new ConversationMedia(
+                    item.fileName || fallbackName,
+                    item.mimeType || "application/octet-stream",
+                    0,
+                    undefined,
+                    "error",
+                    Exception.messageFrom(error)
+                ));
+            }
+        }
+
+        return { media, bytesStored };
+    }
+
+    private async resolveResponseMedia(item: IResponseMedia): Promise<{ bytes: ArrayBuffer; mimeType?: string; fileName?: string }> {
+        let base64 = item.base64?.trim();
+        if (!base64 && item.url?.startsWith("data:")) {
+            base64 = item.url;
+        }
+        if (base64) {
+            const dataUrl = /^data:([^;,]+)?;base64,(.*)$/s.exec(base64);
+            if (dataUrl) {
+                base64 = dataUrl[2];
+                item.mimeType ||= dataUrl[1];
+            }
+            const approximateBytes = Math.ceil(base64.length * 3 / 4);
+            if (approximateBytes > ConversationFileSystemService.MAX_MEDIA_ITEM_BYTES) {
+                throw new Error("Media exceeds the 20 MB item limit");
+            }
+            const bytes = StringTools.toBytes(base64);
+            return { bytes: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), mimeType: item.mimeType };
+        }
+
+        let url = item.url?.trim();
+        if (!url && item.fileId) {
+            const filesBase = item.providerResponsesUrl.replace(/\/responses\/?$/, "");
+            url = `${filesBase}/files/${encodeURIComponent(item.fileId)}/content`;
+        }
+        if (!url || !/^https?:\/\//i.test(url)) {
+            throw new Error("Media response did not contain data, an HTTP URL, or a file ID");
+        }
+
+        const includeAuthorization = item.apiKey && this.sameOrigin(url, item.providerResponsesUrl);
+        const response = await Promise.race([
+            requestUrl({
+                url,
+                method: "GET",
+                headers: includeAuthorization ? { Authorization: `Bearer ${item.apiKey}` } : undefined,
+                throw: false
+            }),
+            new Promise<never>((_, reject) => setTimeout(
+                () => reject(new Error("Media download timed out")),
+                ConversationFileSystemService.MEDIA_DOWNLOAD_TIMEOUT_MS
+            ))
+        ]);
+        if (response.status < 200 || response.status >= 300) {
+            throw new Error(`Media download failed with HTTP ${response.status}`);
+        }
+        const contentLength = Number(this.responseHeader(response.headers, "content-length") ?? 0);
+        if (contentLength > ConversationFileSystemService.MAX_MEDIA_ITEM_BYTES) {
+            throw new Error("Media exceeds the 20 MB item limit");
+        }
+        const disposition = this.responseHeader(response.headers, "content-disposition") ?? "";
+        const fileName = /filename\*?=(?:UTF-8''|\")?([^";]+)/i.exec(disposition)?.[1];
+        return {
+            bytes: response.arrayBuffer,
+            mimeType: this.responseHeader(response.headers, "content-type")?.split(";")[0],
+            fileName: fileName ? decodeURIComponent(fileName.trim()) : undefined
+        };
+    }
+
+    private sameOrigin(left: string, right: string): boolean {
+        try {
+            return new URL(left).origin === new URL(right).origin;
+        } catch {
+            return false;
+        }
+    }
+
+    private responseHeader(headers: Record<string, string>, name: string): string | undefined {
+        const key = Object.keys(headers).find(item => item.toLowerCase() === name.toLowerCase());
+        return key ? headers[key] : undefined;
+    }
+
+    private mediaExtension(fileName: string, mimeType: string): string {
+        const nameExtension = /\.([a-z0-9]{1,10})$/i.exec(fileName)?.[1];
+        if (nameExtension) return nameExtension.toLowerCase();
+        const extensions: Record<string, string> = {
+            "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif",
+            "image/avif": "avif", "image/svg+xml": "svg", "application/pdf": "pdf",
+            "text/plain": "txt", "application/json": "json", "text/csv": "csv",
+            "application/zip": "zip"
+        };
+        return extensions[mimeType] ?? "bin";
+    }
+
+    private ensureFileExtension(fileName: string, extension: string): string {
+        const safeName = fileName.replace(/[\\/:*?"<>|]/g, "_").trim() || "generated-file";
+        return /\.[a-z0-9]{1,10}$/i.test(safeName) ? safeName : `${safeName}.${extension}`;
     }
 
     public generateConversationPath(conversation: Conversation): string {
@@ -78,6 +218,14 @@ export class ConversationFileSystemService {
                         mimeType: att.mimeType,
                         filePath: att.filePath,
                         fileID: att.fileID
+                    })),
+                    media: content.media.map(item => ({
+                        fileName: item.fileName,
+                        mimeType: item.mimeType,
+                        sizeBytes: item.sizeBytes,
+                        filePath: item.filePath,
+                        status: item.status,
+                        error: item.error
                     })),
                     references: content.references,
                     shouldDisplayContent: content.shouldDisplayContent,
@@ -179,6 +327,12 @@ export class ConversationFileSystemService {
                             referenceCount.set(attachment.filePath, count + 1);
                         }
                     }
+                    for (const media of content.media) {
+                        if (media.filePath) {
+                            const count = referenceCount.get(media.filePath) || 0;
+                            referenceCount.set(media.filePath, count + 1);
+                        }
+                    }
                 }
             }
 
@@ -272,6 +426,7 @@ export class ConversationFileSystemService {
             const contentPromises = result.contents.map(async content => {
                 const attachments = await this.deserializeAttachments(content.attachments);
                 const references = this.deserializeReferences(content.references);
+                const media = this.deserializeMedia(content.media);
 
                 return new ConversationContent({
                     role: content.role,
@@ -281,6 +436,7 @@ export class ConversationFileSystemService {
                     toolCall: content.toolCall,
                     functionResponse: content.functionResponse,
                     attachments: attachments,
+                    media,
                     references: references,
                     shouldDisplayContent: content.shouldDisplayContent,
                     toolId: content.toolId,
@@ -338,6 +494,20 @@ export class ConversationFileSystemService {
             .map(referenceData => new Reference(
                 referenceData.fileName,
                 referenceData.size
+            ));
+    }
+
+    private deserializeMedia(mediaData: unknown): ConversationMedia[] {
+        if (!Array.isArray(mediaData)) return [];
+        return mediaData
+            .filter(ConversationMedia.isData)
+            .map(item => new ConversationMedia(
+                item.fileName,
+                item.mimeType,
+                item.sizeBytes,
+                item.filePath,
+                item.status ?? "ready",
+                item.error
             ));
     }
 

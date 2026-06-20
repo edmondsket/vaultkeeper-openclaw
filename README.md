@@ -30,6 +30,7 @@ This is an MIT-licensed fork of [Vaultkeeper AI](https://github.com/andy-stack/v
 - **Quick Actions** - Lightweight, single-shot AI operations on selected text, available via right-click context menu and a dedicated editor toolbar button — both toggleable in settings and fully supported on mobile
 - **Mobile Compatible** - Full functionality on mobile devices with touch-friendly controls
 - **Streaming Responses** - See AI responses as they're generated
+- **Model-generated media** - Save returned images and files into the vault, with inline image previews and persistent file cards
 - **Local settings** - The Gateway token is stored in Obsidian's local plugin data
 
 ## Installation
@@ -83,6 +84,12 @@ Settings from versions before 0.5.0 are automatically migrated into an `OpenClaw
 ### Chat Modes
 
 The chat mode selector in the input toolbar lets you switch between three modes at any time.
+
+### Model-generated images and files
+
+Responses API media—including generated image Base64, native image/file objects, download URLs, and OpenAI-compatible `file_id` values—is saved under `Vaultkeeper AI/Conversations/Attachments`. PNG, JPEG, WebP, GIF, and AVIF images are previewed inline; other formats are shown as file cards that can be opened from Obsidian. Ordinary links written in Markdown are never downloaded automatically.
+
+Returned media is limited to 20 MB per file and 50 MB per model response. It is stored separately from user uploads, so it is not sent back to the model as an attachment on the next turn.
 
 **Read-Only Mode (Default)** 🔍
 

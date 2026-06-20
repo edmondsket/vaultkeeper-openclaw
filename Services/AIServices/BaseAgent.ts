@@ -17,6 +17,7 @@ import { DebugColor } from "Enums/DebugColor";
 import { Exception } from "Helpers/Exception";
 import { AIToolUsageMode } from "Enums/AIToolUsageMode";
 import type { SettingsService } from "Services/SettingsService";
+import { ConversationFileSystemService } from "Services/ConversationFileSystemService";
 
 export abstract class BaseAgent {
     
@@ -26,6 +27,7 @@ export abstract class BaseAgent {
     protected readonly debugService: DebugService | undefined;
 
     private readonly settingsService: SettingsService;
+    private readonly conversationFileSystemService: ConversationFileSystemService | undefined;
 
     private onSaveConversation?: (conversation: Conversation) => Promise<void>;
 
@@ -33,6 +35,7 @@ export abstract class BaseAgent {
         this.aiPrompt = Resolve<IPrompt>(Services.IPrompt);
         this.aiToolService = Resolve<AIToolService>(Services.AIToolService);
         this.settingsService = Resolve<SettingsService>(Services.SettingsService);
+        this.conversationFileSystemService = TryResolve<ConversationFileSystemService>(Services.ConversationFileSystemService);
         this.debugService = TryResolve<DebugService>(Services.DebugService);
         this.setDebugColor();
     }
@@ -145,6 +148,7 @@ export abstract class BaseAgent {
         let accumulatedContent = "";
         let capturedToolCall: AIToolCall | null = null;
         let capturedShouldContinue = false;
+        let mediaBytesStored = 0;
 
         for await (const chunk of this.ai.streamRequest(conversation)) {
             if (chunk.error && chunk.errorType) {
@@ -178,10 +182,24 @@ export abstract class BaseAgent {
                 }
             }
 
+            if (chunk.media && chunk.media.length > 0) {
+                if (!this.conversationFileSystemService) {
+                    throw new Error("Conversation media storage service is unavailable");
+                }
+                const persisted = await this.conversationFileSystemService.persistResponseMedia(
+                    chunk.media,
+                    Math.max(0, ConversationFileSystemService.MAX_MEDIA_RESPONSE_BYTES - mediaBytesStored)
+                );
+                mediaBytesStored += persisted.bytesStored;
+                conversationContent.media.push(...persisted.media);
+                conversationContent.shouldDisplayContent = true;
+                callbacks.onStreamingUpdate();
+            }
+
             if (chunk.isComplete) {
                 const sanitizedContent = sanitizeToolCallContent(accumulatedContent, capturedToolCall);
 
-                if (sanitizedContent.trim() === "" && !capturedToolCall) {
+                if (sanitizedContent.trim() === "" && !capturedToolCall && conversationContent.media.length === 0) {
                     conversation.contents.pop();
                 } else {
                     conversationContent.content = sanitizedContent;
@@ -196,7 +214,7 @@ export abstract class BaseAgent {
                 }
             }
 
-            if (conversationContent.content?.trim() !== "") {
+            if (conversationContent.content?.trim() !== "" || conversationContent.media.length > 0) {
                 callbacks.onStreamingUpdate();
             } else {
                 conversationContent.shouldDisplayContent = false;

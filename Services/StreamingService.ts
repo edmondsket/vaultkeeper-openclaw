@@ -7,6 +7,7 @@ import { Resolve } from "./DependencyService";
 import { EventService } from "./EventService";
 import { Services } from "./Services";
 import { sleep } from "Helpers/Helpers";
+import type { IResponseMedia } from "Types/ResponseMedia";
 
 export interface IStreamChunk {
   content: string;
@@ -16,6 +17,7 @@ export interface IStreamChunk {
   toolCall?: AIToolCall;
   toolCallStarted?: string;
   shouldContinue?: boolean;
+  media?: IResponseMedia[];
 }
 
 export class StreamingService {

@@ -3,6 +3,7 @@ import { ApiErrorType } from "Types/ApiError";
 import type { Attachment } from "./Attachment";
 import type { Reference } from "./Reference";
 import { Copy } from "Enums/Copy";
+import type { ConversationMedia } from "./ConversationMedia";
 
 type ConversationContentInit = {
     role: Role;
@@ -12,6 +13,7 @@ type ConversationContentInit = {
     toolCall?: string;
     functionResponse?: string;
     attachments?: Attachment[];
+    media?: ConversationMedia[];
     references?: Reference[];
     shouldDisplayContent?: boolean;
     toolId?: string;
@@ -27,6 +29,7 @@ export class ConversationContent {
     public toolCall: string | undefined;
     public functionResponse: string | undefined;
     public attachments: Attachment[];
+    public media: ConversationMedia[];
     public references: Reference[];
     public shouldDisplayContent: boolean;
     public toolId: string | undefined;
@@ -58,6 +61,7 @@ export class ConversationContent {
         this.toolCall = init.toolCall;
         this.functionResponse = init.functionResponse;
         this.attachments = init.attachments ?? [];
+        this.media = init.media ?? [];
         this.references = init.references ?? [];
         this.shouldDisplayContent = init.shouldDisplayContent ?? true;
         this.toolId = init.toolId;
@@ -80,6 +84,7 @@ export class ConversationContent {
         toolCall?: string;
         functionResponse?: string;
         attachments?: unknown[];
+        media?: unknown[];
         references?: unknown[];
         shouldDisplayContent?: boolean;
         toolId?: string;
@@ -99,6 +104,7 @@ export class ConversationContent {
             (!("toolCall" in data) || typeof data.toolCall === "string") &&
             (!("functionResponse" in data) || typeof data.functionResponse === "string") &&
             (!("attachments" in data) || Array.isArray(data.attachments)) &&
+            (!("media" in data) || Array.isArray(data.media)) &&
             (!("references" in data) || Array.isArray(data.references)) &&
             (!("shouldDisplayContent" in data) || typeof data.shouldDisplayContent === "boolean") &&
             (!("toolId" in data) || typeof data.toolId === "string") &&

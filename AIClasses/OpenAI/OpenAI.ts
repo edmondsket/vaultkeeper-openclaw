@@ -20,8 +20,13 @@ import { Copy } from "Enums/Copy";
 import { AgentType } from "Enums/AgentType";
 import { requestUrl } from "obsidian";
 import { AbortService } from "Services/AbortService";
+import type { IResponseMedia } from "Types/ResponseMedia";
 
 export class OpenAI extends BaseAIClass {
+
+    private mediaProviderResponsesUrl = "";
+    private mediaProviderApiKey = "";
+    private readonly receivedMediaKeys = new Set<string>();
 
     private readonly CLIENT_TOOL_ROUTING_INSTRUCTION = `
 ## Obsidian client tool routing
@@ -55,6 +60,9 @@ The function tools included with this request execute in the user's active Obsid
             : `${this.systemPrompt}\n\n${this.userInstruction}`;
 
         const endpoint = this.openClawEndpoint();
+        this.mediaProviderResponsesUrl = endpoint.url;
+        this.mediaProviderApiKey = endpoint.apiKey;
+        this.receivedMediaKeys.clear();
         const compatibilityMode = !endpoint.streamingEnabled;
         const requestBody = {
             model: endpoint.model,
@@ -143,6 +151,8 @@ The function tools included with this request execute in the user's active Obsid
                     if (text) {
                     chunks.push({ content: text, isComplete: false });
                     }
+                    const media = this.uniqueResponseMedia(this.extractResponseMedia(item));
+                    if (media.length > 0) chunks.push({ content: "", isComplete: false, media });
                 continue;
             }
 
@@ -160,6 +170,9 @@ The function tools included with this request execute in the user's active Obsid
                         Exception.log(error);
                     }
             }
+
+            const media = this.uniqueResponseMedia(this.extractResponseMedia(item));
+            if (media.length > 0) chunks.push({ content: "", isComplete: false, media });
         }
 
         return chunks;
@@ -282,6 +295,10 @@ The function tools included with this request execute in the user's active Obsid
                 case "response.done": {
                     // Response completed
                     isComplete = true;
+                    const media = this.uniqueResponseMedia(this.extractResponseMedia(event));
+                    if (media.length > 0) {
+                        return { content: "", isComplete: true, media };
+                    }
                     break;
                 }
 
@@ -322,13 +339,23 @@ The function tools included with this request execute in the user's active Obsid
                             Exception.log(error);
                         }
                     }
+                    const media = this.uniqueResponseMedia(this.extractResponseMedia(itemDoneEvent.item));
+                    if (media.length > 0) {
+                        return { content: "", isComplete: false, media };
+                    }
+                    break;
+                }
+
+                case "response.image_generation_call.completed":
+                case "response.content_part.done": {
+                    const media = this.uniqueResponseMedia(this.extractResponseMedia(event));
+                    if (media.length > 0) return { content: "", isComplete: false, media };
                     break;
                 }
 
                 case "response.created":
                 case "response.in_progress":
                 case "response.content_part.added":
-                case "response.content_part.done":
                 case "response.output_text.done":
                 case "response.web_search_call.in_progress":
                 case "response.web_search_call.searching":
@@ -352,6 +379,74 @@ The function tools included with this request execute in the user's active Obsid
         } catch (error) {
             return this.createErrorChunk(error);
         }
+    }
+
+    private extractResponseMedia(value: unknown): IResponseMedia[] {
+        if (!value || typeof value !== "object") return [];
+        const record = value as Record<string, unknown>;
+        const type = typeof record.type === "string" ? record.type : "";
+        const mediaTypes = new Set([
+            "image_generation_call", "output_image", "image", "output_file", "file",
+            "output_audio", "audio", "output_video", "video"
+        ]);
+        const results: IResponseMedia[] = [];
+
+        if (mediaTypes.has(type)) {
+            const nestedImage = typeof record.image_url === "object" && record.image_url
+                ? record.image_url as Record<string, unknown>
+                : undefined;
+            const nestedFile = typeof record.file === "object" && record.file
+                ? record.file as Record<string, unknown>
+                : undefined;
+            const source = nestedFile ?? nestedImage ?? record;
+            const resultBase64 = type === "image_generation_call" && typeof record.result === "string" ? record.result : undefined;
+            const base64 = resultBase64
+                ?? this.firstString(source, ["base64", "b64_json", "data", "file_data", "image_base64"]);
+            const url = this.firstString(source, ["url", "download_url", "file_url", "image_url"]);
+            const fileId = this.firstString(source, ["file_id"])
+                ?? ((type === "file" || type === "output_file") ? this.firstString(source, ["id"]) : undefined);
+            if (base64 || url || fileId) {
+                results.push({
+                    fileName: this.firstString(source, ["filename", "file_name", "name"]),
+                    mimeType: this.firstString(source, ["mime_type", "content_type"])
+                        ?? (type.includes("image") ? "image/png" : undefined),
+                    base64,
+                    url,
+                    fileId,
+                    providerResponsesUrl: this.mediaProviderResponsesUrl,
+                    apiKey: this.mediaProviderApiKey
+                });
+            }
+        }
+
+        for (const key of ["content", "output", "item", "part", "response"]) {
+            const child = record[key];
+            if (Array.isArray(child)) {
+                for (const item of child) results.push(...this.extractResponseMedia(item));
+            } else if (child && typeof child === "object") {
+                results.push(...this.extractResponseMedia(child));
+            }
+        }
+        return results;
+    }
+
+    private firstString(record: Record<string, unknown>, keys: string[]): string | undefined {
+        for (const key of keys) {
+            const value = record[key];
+            if (typeof value === "string" && value.trim()) return value;
+        }
+        return undefined;
+    }
+
+    private uniqueResponseMedia(items: IResponseMedia[]): IResponseMedia[] {
+        return items.filter(item => {
+            const source = item.fileId ?? item.url ?? item.base64;
+            if (!source) return false;
+            const key = `${item.fileName ?? ""}:${source.length}:${source.slice(0, 128)}`;
+            if (this.receivedMediaKeys.has(key)) return false;
+            this.receivedMediaKeys.add(key);
+            return true;
+        });
     }
 
     protected async extractContents(conversationContent: ConversationContent[]): Promise<ResponsesAPIInput[]> {

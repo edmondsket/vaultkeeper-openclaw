@@ -166,6 +166,11 @@ export const ChineseCopy: Partial<Record<CopyKey, string>> = {
     ErrorPlugin: "Vaultkeeper OpenClaw 错误：{0}",
     ErrorSaveConversation: "无法保存对话数据：“{0}”",
     ErrorNameConversation: "无法为对话“{0}”生成标题",
+    MediaOpen: "打开文件",
+    MediaFailed: "媒体不可用",
+    MediaDownloadFailed: "媒体下载失败",
+    MediaTooLarge: "媒体文件过大",
+    MediaFormatUnsupported: "该格式不支持预览",
     AttachedFile: "附件：{0}",
 
     PlanningFailedError: "规划失败，请重试。",

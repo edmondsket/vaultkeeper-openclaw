@@ -5,8 +5,10 @@ import { Services } from '../../Services/Services';
 import { Conversation } from '../../Conversations/Conversation';
 import { ConversationContent } from '../../Conversations/ConversationContent';
 import { Role } from '../../Enums/Role';
-import { TFile } from 'obsidian';
+import { requestUrl, TFile } from 'obsidian';
 import { Exception } from '../../Helpers/Exception';
+import { StringTools } from '../../Helpers/StringTools';
+import { ConversationMedia } from '../../Conversations/ConversationMedia';
 
 /**
  * INTEGRATION TESTS - ConversationFileSystemService
@@ -29,6 +31,7 @@ describe('ConversationFileSystemService - Integration Tests', () => {
 		// Mock FileSystemService
 		mockFileSystemService = {
 			writeObjectToFile: vi.fn().mockResolvedValue(true),
+			writeBinaryFile: vi.fn().mockResolvedValue(new TFile()),
 			readObjectFromFile: vi.fn(),
 			deleteFile: vi.fn(),
 			moveFile: vi.fn(),
@@ -41,6 +44,8 @@ describe('ConversationFileSystemService - Integration Tests', () => {
 
 		// Mock Exception.log
 		vi.spyOn(Exception, 'log').mockImplementation(() => {});
+		vi.spyOn(StringTools, 'computeSHA256Hash').mockResolvedValue('a'.repeat(64));
+		vi.spyOn(StringTools, 'computeSHA256Bytes').mockResolvedValue('a'.repeat(64));
 
 		// Create service
 		service = new ConversationFileSystemService();
@@ -98,6 +103,85 @@ describe('ConversationFileSystemService - Integration Tests', () => {
 			const path = service.generateConversationPath(conversation);
 
 			expect(path).toBe('Vaultkeeper AI/Conversations/.json');
+		});
+	});
+
+	describe('response media persistence', () => {
+		it('stores base64 media with a real extension and returns metadata only', async () => {
+			const result = await service.persistResponseMedia([{
+				fileName: 'generated',
+				mimeType: 'image/png',
+				base64: btoa('png'),
+				providerResponsesUrl: 'https://provider.example/v1/responses',
+				apiKey: 'token'
+			}], ConversationFileSystemService.MAX_MEDIA_RESPONSE_BYTES);
+
+			expect(result.bytesStored).toBe(3);
+			expect(result.media[0]).toMatchObject({
+				fileName: 'generated.png',
+				mimeType: 'image/png',
+				sizeBytes: 3,
+				status: 'ready'
+			});
+			expect(result.media[0].filePath).toMatch(/^Attachments\/[a-f0-9]+\.png$/);
+			expect(mockFileSystemService.writeBinaryFile).toHaveBeenCalledWith(
+				expect.stringMatching(/^Vaultkeeper AI\/Conversations\/Attachments\/[a-f0-9]+\.png$/),
+				expect.any(ArrayBuffer),
+				true
+			);
+		});
+
+		it('returns an error card when the response byte budget is exceeded', async () => {
+			const result = await service.persistResponseMedia([{
+				fileName: 'large.bin',
+				mimeType: 'application/octet-stream',
+				base64: btoa('three bytes'),
+				providerResponsesUrl: 'https://provider.example/v1/responses',
+				apiKey: ''
+			}], 2);
+
+			expect(result.bytesStored).toBe(0);
+			expect(result.media[0].status).toBe('error');
+			expect(mockFileSystemService.writeBinaryFile).not.toHaveBeenCalled();
+		});
+
+		it('downloads file IDs from the selected provider with its bearer token', async () => {
+			vi.mocked(requestUrl).mockResolvedValueOnce({
+				status: 200,
+				text: '',
+				json: {},
+				arrayBuffer: new TextEncoder().encode('pdf').buffer,
+				headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="report.pdf"' }
+			});
+
+			const result = await service.persistResponseMedia([{
+				fileId: 'file-123',
+				providerResponsesUrl: 'https://provider.example/v1/responses',
+				apiKey: 'provider-token'
+			}], ConversationFileSystemService.MAX_MEDIA_RESPONSE_BYTES);
+
+			expect(result.media[0]).toMatchObject({ fileName: 'report.pdf', mimeType: 'application/pdf', status: 'ready' });
+			expect(vi.mocked(requestUrl)).toHaveBeenCalledWith(expect.objectContaining({
+				url: 'https://provider.example/v1/files/file-123/content',
+				headers: { Authorization: 'Bearer provider-token' }
+			}));
+		});
+
+		it('does not leak the provider token to a cross-origin native media URL', async () => {
+			vi.mocked(requestUrl).mockResolvedValueOnce({
+				status: 200, text: '', json: {},
+				arrayBuffer: new TextEncoder().encode('file').buffer,
+				headers: { 'content-type': 'application/octet-stream' }
+			});
+
+			await service.persistResponseMedia([{
+				url: 'https://storage.example/signed/file',
+				fileName: 'file.bin',
+				providerResponsesUrl: 'https://provider.example/v1/responses',
+				apiKey: 'secret-token'
+			}], ConversationFileSystemService.MAX_MEDIA_RESPONSE_BYTES);
+
+			expect(vi.mocked(requestUrl)).toHaveBeenCalledWith(expect.objectContaining({ headers: undefined }));
 		});
 	});
 
@@ -220,6 +304,26 @@ describe('ConversationFileSystemService - Integration Tests', () => {
 
 			expect(responseContent.functionResponse).toBe('response data');
 			expect(responseContent.toolId).toBe('tool_456');
+		});
+
+		it('serializes model media as metadata without embedding response bytes', async () => {
+			const conversation = createTestConversation('With Media');
+			conversation.contents[1].media.push(new ConversationMedia(
+				'generated.png', 'image/png', 3, 'Attachments/hash.png'
+			));
+
+			await service.saveConversation(conversation);
+
+			const savedData = mockFileSystemService.writeObjectToFile.mock.calls[0][1];
+			expect(savedData.contents[1].media).toEqual([{
+				fileName: 'generated.png',
+				mimeType: 'image/png',
+				sizeBytes: 3,
+				filePath: 'Attachments/hash.png',
+				status: 'ready',
+				error: undefined
+			}]);
+			expect(JSON.stringify(savedData)).not.toContain('base64');
 		});
 
 		it('should handle empty conversation', async () => {
@@ -449,6 +553,24 @@ describe('ConversationFileSystemService - Integration Tests', () => {
 			expect(conversations[0].contents[0].role).toBe(Role.User);
 		});
 
+		it('restores model media metadata without loading it as a user attachment', async () => {
+			const mockFiles = [createMockFile('Vaultkeeper AI/Conversations/media.json')];
+			mockFileSystemService.listFilesInDirectory.mockResolvedValue(mockFiles);
+			mockFileSystemService.readObjectFromFile.mockResolvedValue({
+				title: 'Media', created: '2024-01-01T10:00:00.000Z', updated: '2024-01-01T10:00:00.000Z',
+				contents: [{
+					role: Role.Assistant, content: '', timestamp: '2024-01-01T10:00:00.000Z', attachments: [],
+					media: [{ fileName: 'report.pdf', mimeType: 'application/pdf', sizeBytes: 3, filePath: 'Attachments/hash.pdf', status: 'ready' }]
+				}]
+			});
+
+			const conversations = await service.getAllConversations();
+
+			expect(conversations[0].contents[0].media[0]).toBeInstanceOf(ConversationMedia);
+			expect(conversations[0].contents[0].media[0].filePath).toBe('Attachments/hash.pdf');
+			expect(conversations[0].contents[0].attachments).toEqual([]);
+		});
+
 		it('should skip invalid conversation files', async () => {
 			const mockFiles = [
 				createMockFile('Vaultkeeper AI/Conversations/valid.json'),
@@ -525,6 +647,30 @@ describe('ConversationFileSystemService - Integration Tests', () => {
 				arguments: {}
 			});
 			expect(conversations[0].contents[1].functionResponse).toBeDefined();
+		});
+	});
+
+	describe('garbageCollectAttachments', () => {
+		it('keeps model media referenced by a conversation and deletes orphaned files', async () => {
+			const referenced = createMockFile('Vaultkeeper AI/Conversations/Attachments/kept.png');
+			const orphaned = createMockFile('Vaultkeeper AI/Conversations/Attachments/orphan.bin');
+			const conversationFile = createMockFile('Vaultkeeper AI/Conversations/media.json');
+			mockFileSystemService.listFilesInDirectory.mockImplementation(async (path: string) =>
+				path.endsWith('Attachments') ? [referenced, orphaned] : [conversationFile]
+			);
+			mockFileSystemService.readObjectFromFile.mockResolvedValue({
+				title: 'Media', created: '2024-01-01T10:00:00.000Z', updated: '2024-01-01T10:00:00.000Z',
+				contents: [{
+					role: Role.Assistant, content: '', timestamp: '2024-01-01T10:00:00.000Z', attachments: [],
+					media: [{ fileName: 'kept.png', mimeType: 'image/png', sizeBytes: 3, filePath: 'Attachments/kept.png', status: 'ready' }]
+				}]
+			});
+			mockFileSystemService.deleteFile.mockResolvedValue(undefined);
+
+			await service.garbageCollectAttachments();
+
+			expect(mockFileSystemService.deleteFile).toHaveBeenCalledTimes(1);
+			expect(mockFileSystemService.deleteFile).toHaveBeenCalledWith(orphaned.path, true, false);
 		});
 	});
 
