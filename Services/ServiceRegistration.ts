@@ -92,8 +92,8 @@ export function RegisterDependencies() {
     RegisterSingleton<ConversationFileSystemService>(Services.ConversationFileSystemService, new ConversationFileSystemService());
     RegisterSingleton<ConversationNamingService>(Services.ConversationNamingService, new ConversationNamingService());
     RegisterSingleton<QuickActionsDefinitionsService>(Services.QuickActionsDefinitionsService, new QuickActionsDefinitionsService());
-    RegisterSingleton<QuickActionsService>(Services.QuickActionsService, new QuickActionsService());
     RegisterSingleton<CustomSkillService>(Services.CustomSkillService, new CustomSkillService());
+    RegisterSingleton<QuickActionsService>(Services.QuickActionsService, new QuickActionsService());
     RegisterSingleton<S3FileService>(Services.S3FileService, new S3FileService());
 
     
