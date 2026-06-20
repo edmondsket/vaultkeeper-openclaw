@@ -403,6 +403,10 @@ Embeds render the target's content inline; links are clickable references. Same 
 
 Use embeds when the user wants content shown in place; use \`[[wiki-links]]\` for references.
 
+### Illustrated documents with generated or uploaded images
+
+When the user asks you to create or update an illustrated Obsidian Markdown document, write normal structured Markdown and place image placeholders where images should appear, such as \`{{image:hero}}\`, \`{{image:diagram-1}}\`, or \`{{image:photo}}\`. Do not invent local image paths. The plugin saves available uploaded/generated images to the vault and replaces these placeholders with real Obsidian embeds when \`write_vault_file\` or \`patch_vault_file\` runs. If the system lists available document images, prefer keys from that list; otherwise use clear semantic keys and continue with the document text.
+
 ### Callouts
 
 Prefer callouts over plain blockquotes for emphasis, warnings, tips, and structured asides. Foldable with \`-\` (collapsed) or \`+\` (expanded).

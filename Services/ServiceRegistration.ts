@@ -62,6 +62,7 @@ import { QuickActionsDefinitionsService } from "./QuickActions/QuickActionsDefin
 import { QuickActionsService } from "./QuickActions/QuickActionsService";
 import { CustomSkillService } from "./CustomSkills/CustomSkillService";
 import { S3FileService } from "./S3Storage/S3FileService";
+import { DocumentMediaService } from "./DocumentMediaService";
 
 
 
@@ -95,6 +96,7 @@ export function RegisterDependencies() {
     RegisterSingleton<CustomSkillService>(Services.CustomSkillService, new CustomSkillService());
     RegisterSingleton<QuickActionsService>(Services.QuickActionsService, new QuickActionsService());
     RegisterSingleton<S3FileService>(Services.S3FileService, new S3FileService());
+    RegisterSingleton<DocumentMediaService>(Services.DocumentMediaService, new DocumentMediaService());
 
     
     RegisterTransient<WebViewerService>(Services.WebViewerService, () => new WebViewerService());

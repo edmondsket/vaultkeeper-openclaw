@@ -20,6 +20,7 @@ import type { ChatMode } from "Enums/ChatMode";
 import { ApiErrorType } from "Types/ApiError";
 import { Copy } from "Enums/Copy";
 import { replaceCopy } from "Helpers/Helpers";
+import type { DocumentMediaService } from "./DocumentMediaService";
 
 export interface IChatServiceCallbacks {
 	onSubmit: () => void;
@@ -43,6 +44,7 @@ export class ChatService {
 	private workSpaceService: WorkSpaceService;
 	private eventService: EventService;
 	private abortService: AbortService;
+	private documentMediaService: DocumentMediaService;
 
 	private semaphore: Semaphore;
 	private semaphoreHeld: boolean = false;
@@ -54,6 +56,7 @@ export class ChatService {
 		this.workSpaceService = Resolve<WorkSpaceService>(Services.WorkSpaceService);
 		this.eventService = Resolve<EventService>(Services.EventService);
 		this.abortService = Resolve<AbortService>(Services.AbortService);
+		this.documentMediaService = Resolve<DocumentMediaService>(Services.DocumentMediaService);
 		this.semaphore = new Semaphore(1, false);
 
 		this.mainAgent.setSaveCallback(async (conversation) => {
@@ -76,6 +79,8 @@ export class ChatService {
 			}
 
 			this.abortService.initialiseAbortController();
+			this.documentMediaService.clear();
+			await this.documentMediaService.registerUserAttachments(attachments);
 
 			await this.abortService.abortableOperation(async () => {
 				const firstMessage = conversation.contents.length === 0;
@@ -112,7 +117,8 @@ export class ChatService {
 				callbacks.onSubmit();
 				callbacks.onStreamingUpdate();
 
-				await this.mainAgent.runMainAgent(conversation, chatMode, callbacks, chatSkillInstruction);
+				const mediaInstruction = this.documentMediaService.listForPrompt();
+				await this.mainAgent.runMainAgent(conversation, chatMode, callbacks, [chatSkillInstruction, mediaInstruction].filter(Boolean).join("\n\n"));
 
 				if (namingPromise) {
 					const timeout = new Promise<void>(resolve => window.setTimeout(resolve, 5000));

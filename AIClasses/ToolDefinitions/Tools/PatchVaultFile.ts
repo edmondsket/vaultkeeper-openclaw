@@ -19,7 +19,12 @@ Call this function:
 Do NOT use this function:
 - When rewriting most or all of a file's content
 - When you haven't read the file first to know the exact content to match
-- When the match might be ambiguous (appears multiple times in the file)`,
+- When the match might be ambiguous (appears multiple times in the file)
+
+Illustrated Markdown documents:
+- To insert available user-uploaded or model-generated images, put placeholders in newContent such as {{image:hero}}, {{image:diagram-1}}, or {{image:photo}}.
+- Do NOT invent vault image paths. The plugin replaces image placeholders with real Obsidian embeds after saving media locally.
+- oldContent must still match the existing file exactly; only newContent placeholders are replaced.`,
     parameters: {
         type: "object",
         properties: {

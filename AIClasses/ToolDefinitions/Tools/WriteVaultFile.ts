@@ -12,7 +12,12 @@ Call this function:
 
 Do NOT use this function:
 - When making small, targeted edits to existing files
-- Before reading existing file content to avoid accidentally overwriting important data`,
+- Before reading existing file content to avoid accidentally overwriting important data
+
+Illustrated Markdown documents:
+- To embed available user-uploaded or model-generated images, put placeholders in the Markdown content such as {{image:hero}}, {{image:diagram-1}}, or {{image:photo}}.
+- Do NOT invent vault image paths. The plugin replaces image placeholders with real Obsidian embeds after saving media locally.
+- If no matching key exists, placeholders are replaced with available images in order when possible.`,
     parameters: {
         type: "object",
         properties: {

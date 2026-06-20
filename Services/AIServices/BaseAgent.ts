@@ -18,6 +18,7 @@ import { Exception } from "Helpers/Exception";
 import { AIToolUsageMode } from "Enums/AIToolUsageMode";
 import type { SettingsService } from "Services/SettingsService";
 import { ConversationFileSystemService } from "Services/ConversationFileSystemService";
+import type { DocumentMediaService } from "Services/DocumentMediaService";
 
 export abstract class BaseAgent {
     
@@ -28,6 +29,7 @@ export abstract class BaseAgent {
 
     private readonly settingsService: SettingsService;
     private readonly conversationFileSystemService: ConversationFileSystemService | undefined;
+    private readonly documentMediaService: DocumentMediaService | undefined;
 
     private onSaveConversation?: (conversation: Conversation) => Promise<void>;
 
@@ -36,6 +38,7 @@ export abstract class BaseAgent {
         this.aiToolService = Resolve<AIToolService>(Services.AIToolService);
         this.settingsService = Resolve<SettingsService>(Services.SettingsService);
         this.conversationFileSystemService = TryResolve<ConversationFileSystemService>(Services.ConversationFileSystemService);
+        this.documentMediaService = TryResolve<DocumentMediaService>(Services.DocumentMediaService);
         this.debugService = TryResolve<DebugService>(Services.DebugService);
         this.setDebugColor();
     }
@@ -192,6 +195,7 @@ export abstract class BaseAgent {
                 );
                 mediaBytesStored += persisted.bytesStored;
                 conversationContent.media.push(...persisted.media);
+                await this.documentMediaService?.registerResponseMedia(persisted.media);
                 conversationContent.shouldDisplayContent = true;
                 callbacks.onStreamingUpdate();
             }

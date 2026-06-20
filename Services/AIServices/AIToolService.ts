@@ -36,6 +36,7 @@ import {
     DeleteVaultFolderArgsSchema,
     MoveVaultFolderArgsSchema
 } from "AIClasses/Schemas/AIToolSchemas";
+import type { DocumentMediaService } from "Services/DocumentMediaService";
 
 export class AIToolService {
 
@@ -44,6 +45,7 @@ export class AIToolService {
     private readonly settingsService: SettingsService;
     private readonly webViewerService: WebViewerService;
     private readonly abortService: AbortService;
+    private readonly documentMediaService: DocumentMediaService;
 
     private lastToolReadMemories: boolean = false;
 
@@ -53,6 +55,7 @@ export class AIToolService {
         this.settingsService = Resolve<SettingsService>(Services.SettingsService);
         this.webViewerService = Resolve<WebViewerService>(Services.WebViewerService);
         this.abortService = Resolve<AbortService>(Services.AbortService);
+        this.documentMediaService = Resolve<DocumentMediaService>(Services.DocumentMediaService);
     }
 
     public async performAITool(toolCall: AIToolCall): Promise<AIToolResponse> {
@@ -340,19 +343,29 @@ export class AIToolService {
     }
 
     private async writeVaultFile(filePath: string, content: string): Promise<AIToolResponsePayload> {
-        const result = await this.fileSystemService.writeToFilePath(normalizePath(filePath), content);
+        const prepared = await this.documentMediaService.prepareMarkdown(content);
+        const result = await this.fileSystemService.writeToFilePath(normalizePath(filePath), prepared.content);
         if (result instanceof Error) {
             return new AIToolResponsePayload({ success: false, error: result.message });
         }
-        return new AIToolResponsePayload({ success: true });
+        return new AIToolResponsePayload({
+            success: true,
+            image_replacements: prepared.replacements,
+            unreplaced_image_placeholders: prepared.remainingPlaceholders
+        });
     }
 
     private async patchVaultFile(filePath: string, oldContent: string[], newContent: string[]): Promise<AIToolResponsePayload> {
-        const result = await this.fileSystemService.patchFileAtPath(normalizePath(filePath), oldContent, newContent);
+        const prepared = await Promise.all(newContent.map(content => this.documentMediaService.prepareMarkdown(content)));
+        const result = await this.fileSystemService.patchFileAtPath(normalizePath(filePath), oldContent, prepared.map(item => item.content));
         if (result instanceof Error) {
             return new AIToolResponsePayload({ success: false, error: result.message });
         }
-        return new AIToolResponsePayload({ success: true });
+        return new AIToolResponsePayload({
+            success: true,
+            image_replacements: prepared.reduce((sum, item) => sum + item.replacements, 0),
+            unreplaced_image_placeholders: prepared.flatMap(item => item.remainingPlaceholders)
+        });
     }
 
     private async deleteVaultFiles(filePaths: string[], confirmation: boolean): Promise<AIToolResponsePayload> {

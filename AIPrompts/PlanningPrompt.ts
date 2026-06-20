@@ -211,6 +211,8 @@ Notes in this vault use Obsidian-flavored Markdown. Recognize these syntax eleme
 
 **Embeds vs. links** — \`[[Note]]\` is a reference; \`![[Note]]\` embeds content inline. Also \`![[image.png]]\`, \`![[doc.pdf#page=3]]\`, \`![[Note#Heading]]\`, \`![[Note#^block-id]]\`. When planning edits, never silently convert an embed to a link (or vice versa).
 
+**Illustrated documents** — When planning creation or edits for image-rich Markdown documents, instruct the execution agent to use image placeholders such as \`{{image:hero}}\` or \`{{image:diagram-1}}\` rather than inventing vault image paths. The client replaces these placeholders with saved local image embeds during file writes.
+
 **Callouts** — Obsidian renders \`> [!note]\`, \`> [!warning]\`, \`> [!tip]\`, etc. as styled blocks (not plain blockquotes). Common types: \`note\`, \`tip\`, \`info\`, \`important\`, \`warning\`, \`danger\`, \`success\`, \`question\`, \`example\`, \`quote\`, \`todo\`. Foldable with \`-\` (collapsed) or \`+\` (expanded). Preserve callout structure when editing notes that use them.
 
 **Tags & frontmatter** — Tags as \`#tag\` or nested \`#parent/child\` (no spaces; hyphens for multi-word). YAML frontmatter at the top of a note may contain special fields: \`tags\` (list, no \`#\` prefix), \`aliases\` (alternative note names — affects wiki-link resolution), \`cssclasses\`, plus arbitrary user fields used by Bases. **Never modify the \`created\` timestamp**; \`updated\` is managed automatically.

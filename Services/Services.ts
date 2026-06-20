@@ -16,6 +16,7 @@ export class Services {
     static QuickActionsDefinitionsService = Symbol("QuickActionsDefinitionsService");
     static CustomSkillService = Symbol("CustomSkillService");
     static S3FileService = Symbol("S3FileService");
+    static DocumentMediaService = Symbol("DocumentMediaService");
     static StreamingService = Symbol("StreamingService");
     static MarkdownService = Symbol("MarkdownService");
     static StreamingMarkdownService = Symbol("StreamingMarkdownService");
