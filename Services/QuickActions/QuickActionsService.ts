@@ -28,6 +28,7 @@ export class QuickActionsService {
     private editorMenuEventRef: EventRef | null = null;
     private layoutChangeEventRef: EventRef | null = null;
     private commandIds: string[] = [];
+    private registeredCommandIds = new Set<string>();
 
     private readonly settingsSubscription: object;
     
@@ -260,7 +261,10 @@ export class QuickActionsService {
         for (const skill of skills) {
             const commandId = `vaultkeeper-skill-${skill.id}`;
             this.registerCommand(commandId, skill.name, skill.icon as any, async (editor, view) => {
-                await this.executeCustomSkill(skill, editor, view);
+                const currentSkill = this.customSkillService.getEnabledSkills().find(item => item.id === skill.id);
+                if (currentSkill) {
+                    await this.executeCustomSkill(currentSkill, editor, view);
+                }
             });
         }
     }
@@ -271,6 +275,10 @@ export class QuickActionsService {
         icon: string,
         callback: (editor: import("obsidian").Editor, view: MarkdownView | import("obsidian").MarkdownFileInfo) => Promise<void>
     ) {
+        if (this.registeredCommandIds.has(id)) {
+            return;
+        }
+        this.registeredCommandIds.add(id);
         this.commandIds.push(id);
         this.plugin.addCommand({
             id,
@@ -283,11 +291,8 @@ export class QuickActionsService {
     }
 
     private unregisterCommands() {
-        for (const id of this.commandIds) {
-            // Obsidian doesn't provide a direct way to remove commands
-            // They will be cleaned up when the plugin is disabled
-        }
-        this.commandIds = [];
+        // Obsidian does not expose a command unregister API. Keep already
+        // registered commands alive and avoid duplicate registration by ID.
     }
 
     private updateRegistrations() {

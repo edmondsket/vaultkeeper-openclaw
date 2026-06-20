@@ -71,7 +71,7 @@ export class CustomSkillService {
         const resolvedPrompt = this.resolvePlaceholders(skill.prompt, context);
         
         // Execute
-        const result = await agent.quickAction(resolvedPrompt, context.selection || context.body || "");
+        const result = await agent.quickAction(resolvedPrompt, context.selection || context.body || "", modelSelection);
         
         if (!result) {
             return null;

@@ -24,6 +24,7 @@ export class S3FileService {
 
         const bytes = StringTools.toBytes(base64Data);
         const key = this.generateObjectKey(fileName);
+        const payloadHash = await this.hashSha256Bytes(bytes);
 
         // Build the S3 URL
         const endpoint = config.endpoint.replace(/\/$/, "");
@@ -40,12 +41,12 @@ export class S3FileService {
         // Build canonical headers
         const host = new URL(endpoint).host;
         const canonicalHeaders = `host:${host}\n` +
-            `x-amz-content-sha256:${this.hashSha256(bytes)}\n` +
+            `x-amz-content-sha256:${payloadHash}\n` +
             `x-amz-date:${amzDate}\n`;
         const signedHeaders = "host;x-amz-content-sha256;x-amz-date";
 
         // Build canonical request
-        const canonicalRequest = `PUT\n/${config.bucket}/${key}\n\n${canonicalHeaders}\n${signedHeaders}\n${this.hashSha256(bytes)}`;
+        const canonicalRequest = `PUT\n/${config.bucket}/${key}\n\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
 
         // Build string to sign
         const algorithm = "AWS4-HMAC-SHA256";
@@ -65,7 +66,7 @@ export class S3FileService {
             headers: {
                 "Authorization": authorizationHeader,
                 "x-amz-date": amzDate,
-                "x-amz-content-sha256": this.hashSha256(bytes),
+                "x-amz-content-sha256": payloadHash,
                 "Content-Type": mimeType,
                 "Content-Length": String(bytes.length)
             },
@@ -174,12 +175,13 @@ export class S3FileService {
             .join("");
     }
 
-    private hashSha256(data: Uint8Array | string): string {
-        if (typeof data === "string") {
-            return data;
-        }
-        // For actual bytes, we'd need async hash - this is handled in hashSha256Async
-        return "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    private async hashSha256Bytes(data: Uint8Array): Promise<string> {
+        const buffer = new ArrayBuffer(data.byteLength);
+        new Uint8Array(buffer).set(data);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+        return Array.from(new Uint8Array(hashBuffer))
+            .map(b => b.toString(16).padStart(2, "0"))
+            .join("");
     }
 
     private async hashSha256Async(data: string): Promise<string> {

@@ -12,20 +12,27 @@ export class QuickAgent extends BaseAgent {
 
     public async quickAction(action: string, context: string, modelSelection?: IOpenClawModelSelection): Promise<string | null> {
         
+        const previousModelSelectionOverride = this.ai?.modelSelectionOverride;
         this.setAgentPromptAndTools(action, modelSelection);
 
-        const conversation = new Conversation();
-        const conversationContent = new ConversationContent({
-            role: Role.User,
-            content: context,
-        });
-        conversation.contents.push(conversationContent);
+        try {
+            const conversation = new Conversation();
+            const conversationContent = new ConversationContent({
+                role: Role.User,
+                content: context,
+            });
+            conversation.contents.push(conversationContent);
 
-        const result = await this.requestAgentResponse(AgentType.QuickAction, conversation, this.callbacks());
-        if (conversation.contents.last()?.errorType) {
-            return null;
+            const result = await this.requestAgentResponse(AgentType.QuickAction, conversation, this.callbacks());
+            if (conversation.contents.last()?.errorType) {
+                return null;
+            }
+            return result;
+        } finally {
+            if (this.ai) {
+                this.ai.modelSelectionOverride = previousModelSelectionOverride;
+            }
         }
-        return result;
     }
 
     private setAgentPromptAndTools(instruction: string, modelSelection?: IOpenClawModelSelection): void {

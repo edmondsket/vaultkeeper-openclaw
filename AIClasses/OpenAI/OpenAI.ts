@@ -209,7 +209,7 @@ The function tools included with this request execute in the user's active Obsid
             };
         }
 
-        const selection = this.settingsService.getOpenClawSelection(kind);
+        const selection = this.modelSelectionOverride ?? this.settingsService.getOpenClawSelection(kind);
         const provider = this.settingsService.getOpenClawProvider(selection);
         if (!selection || !provider) {
             return {
@@ -564,20 +564,8 @@ The function tools included with this request execute in the user's active Obsid
                 const text = new TextDecoder().decode(StringTools.toBytes(attachment.base64));
                 blocks.push({ type: "input_text", text });
             } else if (mimeType === MimeType.IMAGE_JPEG || mimeType === MimeType.IMAGE_PNG || mimeType === MimeType.IMAGE_WEBP) {
-                // Try S3 upload first if enabled
-                if (this.s3FileService.isEnabled()) {
-                    try {
-                        const imageUrl = await this.s3FileService.uploadFile(attachment.fileName, mimeType, attachment.base64);
-                        blocks.push({
-                            type: "input_image",
-                            image_url: imageUrl,
-                            detail: "auto"
-                        });
-                        continue;
-                    } catch (error) {
-                        // Fall back to base64 if S3 upload fails
-                    }
-                }
+                // Keep images inline so vision models and OpenAI-compatible
+                // relays that do not fetch remote image URLs still work.
                 const imageBase64 = await attachment.getBase64();
                 blocks.push({
                     type: "input_image",
