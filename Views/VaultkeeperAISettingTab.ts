@@ -3,11 +3,13 @@ import { Copy, setCopyLanguage, type DisplayLanguage } from "Enums/Copy";
 import { Selector } from "Enums/Selector";
 import type VaultkeeperAIPlugin from "main";
 import { HelpModal } from "Modals/HelpModal";
-import { DropdownComponent, PluginSettingTab, Setting, ToggleComponent, setIcon, setTooltip } from "obsidian";
+import { DropdownComponent, PluginSettingTab, Setting, ToggleComponent, setIcon, setTooltip, Notice } from "obsidian";
 import { Resolve } from "Services/DependencyService";
 import type { EventService } from "Services/EventService";
 import type { IOpenClawModelSelection, IOpenClawProvider, SettingsService } from "Services/SettingsService";
 import { Services } from "Services/Services";
+import { S3FileService } from "Services/S3Storage/S3FileService";
+import { CustomSkillsSetting } from "Components/Settings/CustomSkillsSetting";
 import { closePluginSettings } from "Helpers/Helpers";
 import type { MemoriesService } from "Services/MemoriesService";
 import { RegisterAiProvider } from "Services/ServiceRegistration";
@@ -17,6 +19,7 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 	private readonly settingsService: SettingsService;
 	private readonly memoriesService: MemoriesService;
 	private readonly eventService: EventService;
+	private readonly s3FileService: S3FileService;
 
 	private apiKeySetting: Setting | null = null;
 	private apiKeyInputEl: HTMLInputElement | null = null;
@@ -36,6 +39,7 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 		this.settingsService = Resolve<SettingsService>(Services.SettingsService);
 		this.memoriesService = Resolve<MemoriesService>(Services.MemoriesService);
 		this.eventService = Resolve<EventService>(Services.EventService);
+		this.s3FileService = Resolve<S3FileService>(Services.S3FileService);
 	}
 
 	public display() {
@@ -95,6 +99,124 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 		this.renderOpenClawModelSelector(containerEl, Copy.SettingPlanningRoleModel, Copy.SettingPlanningRoleModelDesc, "planning");
 		this.renderOpenClawModelSelector(containerEl, Copy.SettingQuickRoleModel, Copy.SettingQuickRoleModelDesc, "quickAction");
 
+
+		/* S3 Storage */
+		new Setting(containerEl)
+			.setHeading()
+			.setName(Copy.SettingS3Storage)
+			.setDesc(Copy.SettingS3StorageDesc);
+
+		const s3Config = this.settingsService.settings.s3Config;
+		new Setting(containerEl)
+			.setName(Copy.SettingS3Enabled)
+			.addToggle(toggle => toggle
+				.setValue(s3Config?.enabled ?? false)
+				.onChange(async value => {
+					await this.settingsService.updateSettings(settings => {
+						settings.s3Config = { ...(settings.s3Config ?? {}), enabled: value } as any;
+					});
+					this.display();
+				}));
+
+		if (s3Config?.enabled) {
+			new Setting(containerEl)
+				.setName(Copy.SettingS3Endpoint)
+				.setDesc(Copy.SettingS3EndpointDesc)
+				.addText(text => text
+					.setPlaceholder("https://s3.amazonaws.com")
+					.setValue(s3Config?.endpoint ?? "")
+					.onChange(async value => {
+						await this.settingsService.updateSettings(settings => {
+							settings.s3Config = { ...(settings.s3Config ?? {}), endpoint: value } as any;
+						});
+					}));
+
+			new Setting(containerEl)
+				.setName(Copy.SettingS3Bucket)
+				.setDesc(Copy.SettingS3BucketDesc)
+				.addText(text => text
+					.setPlaceholder("my-bucket")
+					.setValue(s3Config?.bucket ?? "")
+					.onChange(async value => {
+						await this.settingsService.updateSettings(settings => {
+							settings.s3Config = { ...(settings.s3Config ?? {}), bucket: value } as any;
+						});
+					}));
+
+			new Setting(containerEl)
+				.setName(Copy.SettingS3Region)
+				.setDesc(Copy.SettingS3RegionDesc)
+				.addText(text => text
+					.setPlaceholder("us-east-1")
+					.setValue(s3Config?.region ?? "")
+					.onChange(async value => {
+						await this.settingsService.updateSettings(settings => {
+							settings.s3Config = { ...(settings.s3Config ?? {}), region: value } as any;
+						});
+					}));
+
+			new Setting(containerEl)
+				.setName(Copy.SettingS3AccessKey)
+				.setDesc(Copy.SettingS3AccessKeyDesc)
+				.addText(text => {
+					text.inputEl.type = "password";
+					text.setPlaceholder("AKIA...")
+						.setValue(s3Config?.accessKey ?? "")
+						.onChange(async value => {
+							await this.settingsService.updateSettings(settings => {
+								settings.s3Config = { ...(settings.s3Config ?? {}), accessKey: value } as any;
+							});
+						});
+				});
+
+			new Setting(containerEl)
+				.setName(Copy.SettingS3SecretKey)
+				.setDesc(Copy.SettingS3SecretKeyDesc)
+				.addText(text => {
+					text.inputEl.type = "password";
+					text.setPlaceholder("...")
+						.setValue(s3Config?.secretKey ?? "")
+						.onChange(async value => {
+							await this.settingsService.updateSettings(settings => {
+								settings.s3Config = { ...(settings.s3Config ?? {}), secretKey: value } as any;
+							});
+						});
+				});
+
+			new Setting(containerEl)
+				.setName(Copy.SettingS3PathPrefix)
+				.setDesc(Copy.SettingS3PathPrefixDesc)
+				.addText(text => text
+					.setPlaceholder("vaultkeeper-ai")
+					.setValue(s3Config?.pathPrefix ?? "")
+					.onChange(async value => {
+						await this.settingsService.updateSettings(settings => {
+							settings.s3Config = { ...(settings.s3Config ?? {}), pathPrefix: value } as any;
+						});
+					}));
+
+			new Setting(containerEl)
+				.setName(Copy.SettingS3PublicUrlBase)
+				.setDesc(Copy.SettingS3PublicUrlBaseDesc)
+				.addText(text => text
+					.setPlaceholder("https://cdn.example.com")
+					.setValue(s3Config?.publicUrlBase ?? "")
+					.onChange(async value => {
+						await this.settingsService.updateSettings(settings => {
+							settings.s3Config = { ...(settings.s3Config ?? {}), publicUrlBase: value } as any;
+						});
+					}));
+
+			new Setting(containerEl)
+				.setName(Copy.SettingS3TestConnection)
+				.addButton(button => button
+					.setButtonText(Copy.SettingS3TestConnection)
+					.onClick(async () => {
+						const result = await this.s3FileService.testConnection();
+						new Notice(result.message);
+					}));
+		}
+
 		/* Exclusions Setting */
 		new Setting(containerEl)
 			.setName(Copy.SettingFileExclusions)
@@ -109,6 +231,10 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 					});
 				text.inputEl.classList.add(Selector.AIExclusionsInput);
 			});
+
+
+		/* Custom Skills */
+		new CustomSkillsSetting(containerEl).render();
 
 		/* Context Header */
 		new Setting(containerEl)

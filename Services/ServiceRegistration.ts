@@ -60,6 +60,9 @@ import { AIPrompt, type IPrompt } from "AIPrompts/IPrompt";
 import { QuickAgent } from "./AIServices/QuickAgent";
 import { QuickActionsDefinitionsService } from "./QuickActions/QuickActionsDefinitionsService";
 import { QuickActionsService } from "./QuickActions/QuickActionsService";
+import { CustomSkillService } from "./CustomSkills/CustomSkillService";
+import { S3FileService } from "./S3Storage/S3FileService";
+
 
 
 export async function RegisterPlugin(plugin: VaultkeeperAIPlugin) {
@@ -90,6 +93,9 @@ export function RegisterDependencies() {
     RegisterSingleton<ConversationNamingService>(Services.ConversationNamingService, new ConversationNamingService());
     RegisterSingleton<QuickActionsDefinitionsService>(Services.QuickActionsDefinitionsService, new QuickActionsDefinitionsService());
     RegisterSingleton<QuickActionsService>(Services.QuickActionsService, new QuickActionsService());
+    RegisterSingleton<CustomSkillService>(Services.CustomSkillService, new CustomSkillService());
+    RegisterSingleton<S3FileService>(Services.S3FileService, new S3FileService());
+
     
     RegisterTransient<WebViewerService>(Services.WebViewerService, () => new WebViewerService());
     

@@ -57,7 +57,32 @@ const DEFAULT_SETTINGS: IVaultkeeperAISettings = {
     enableContextMenuActions: true,
     enableToolbarActions: true,
 
+    
+    s3Config: undefined,
+    customSkills: [],
     hideDrawerElements: true
+}
+
+
+export interface IS3Config {
+    enabled: boolean;
+    endpoint: string;
+    bucket: string;
+    region: string;
+    accessKey: string;
+    secretKey: string;
+    pathPrefix?: string;
+    publicUrlBase?: string;
+}
+
+export interface ICustomSkill {
+    id: string;
+    name: string;
+    icon: string;
+    prompt: string;
+    modelSelection?: IOpenClawModelSelection;
+    outputMode: "replace_selection" | "replace_body" | "insert_at_cursor" | "copy_to_clipboard";
+    enabled: boolean;
 }
 
 export interface IVaultkeeperAISettings {
@@ -103,6 +128,9 @@ export interface IVaultkeeperAISettings {
     enableContextMenuActions: boolean;
     enableToolbarActions: boolean;
 
+    
+    s3Config?: IS3Config;
+    customSkills?: ICustomSkill[];
     hideDrawerElements: boolean;
 }
 

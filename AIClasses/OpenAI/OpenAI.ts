@@ -21,9 +21,11 @@ import { AgentType } from "Enums/AgentType";
 import { requestUrl } from "obsidian";
 import { AbortService } from "Services/AbortService";
 import type { IResponseMedia } from "Types/ResponseMedia";
+import { S3FileService } from "Services/S3Storage/S3FileService";
 import { StringTools } from "Helpers/StringTools";
 
 export class OpenAI extends BaseAIClass {
+    private readonly s3FileService: S3FileService;
 
     private mediaProviderResponsesUrl = "";
     private mediaProviderApiKey = "";
@@ -43,6 +45,7 @@ The function tools included with this request execute in the user's active Obsid
 
     public constructor() {
         super(AIProvider.OpenAI);
+        this.s3FileService = new S3FileService();
     }
 
     public async* streamRequest(conversation: Conversation): AsyncGenerator<IStreamChunk, void, unknown> {
@@ -561,6 +564,20 @@ The function tools included with this request execute in the user's active Obsid
                 const text = new TextDecoder().decode(StringTools.toBytes(attachment.base64));
                 blocks.push({ type: "input_text", text });
             } else if (mimeType === MimeType.IMAGE_JPEG || mimeType === MimeType.IMAGE_PNG || mimeType === MimeType.IMAGE_WEBP) {
+                // Try S3 upload first if enabled
+                if (this.s3FileService.isEnabled()) {
+                    try {
+                        const imageUrl = await this.s3FileService.uploadFile(attachment.fileName, mimeType, attachment.base64);
+                        blocks.push({
+                            type: "input_image",
+                            image_url: imageUrl,
+                            detail: "auto"
+                        });
+                        continue;
+                    } catch (error) {
+                        // Fall back to base64 if S3 upload fails
+                    }
+                }
                 const imageBase64 = await attachment.getBase64();
                 blocks.push({
                     type: "input_image",
@@ -568,12 +585,32 @@ The function tools included with this request execute in the user's active Obsid
                     detail: "auto"
                 });
             } else if (mimeType === MimeType.APPLICATION_PDF) {
+                // Try S3 upload first if enabled
+                if (this.s3FileService.isEnabled()) {
+                    try {
+                        const fileUrl = await this.s3FileService.uploadFile(attachment.fileName, mimeType, attachment.base64);
+                        blocks.push({ type: "input_text", text: `File uploaded to: ${fileUrl}` });
+                        continue;
+                    } catch (error) {
+                        // Fall back to base64 if S3 upload fails
+                    }
+                }
                 blocks.push({
                     type: "input_file",
                     filename: attachment.fileName,
                     file_data: `data:${mimeType};base64,${attachment.base64}`
                 });
             } else {
+                // For other file types, try S3 upload
+                if (this.s3FileService.isEnabled()) {
+                    try {
+                        const fileUrl = await this.s3FileService.uploadFile(attachment.fileName, mimeType, attachment.base64);
+                        blocks.push({ type: "input_text", text: `File uploaded to: ${fileUrl}` });
+                        continue;
+                    } catch (error) {
+                        // Fall back to error message
+                    }
+                }
                 blocks.push({ type: "input_text", text: `Unsupported mime type '${mimeType}': ${attachment.fileName}` });
             }
         }
