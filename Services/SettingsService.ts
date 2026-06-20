@@ -83,6 +83,12 @@ export interface ICustomSkill {
     modelSelection?: IOpenClawModelSelection;
     outputMode: "replace_selection" | "replace_body" | "insert_at_cursor" | "copy_to_clipboard";
     enabled: boolean;
+    builtIn?: boolean;
+}
+
+export interface IBuiltInSkillSetting {
+    enabled?: boolean;
+    modelSelection?: IOpenClawModelSelection;
 }
 
 export interface IVaultkeeperAISettings {
@@ -131,6 +137,7 @@ export interface IVaultkeeperAISettings {
     
     s3Config?: IS3Config;
     customSkills?: ICustomSkill[];
+    builtInSkillSettings?: Record<string, IBuiltInSkillSetting>;
     hideDrawerElements: boolean;
 }
 

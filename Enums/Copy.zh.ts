@@ -247,7 +247,11 @@ export const ChineseCopy: Partial<Record<CopyKey, string>> = {
 
     // 自定义技能
     SettingCustomSkills: "自定义技能",
-    SettingCustomSkillsDesc: "使用自定义提示词定义你自己的快速操作。",
+    SettingCustomSkillsDesc: "管理内置快速操作，并使用自定义提示词定义你自己的技能。",
+    SettingBuiltInSkill: "内置",
+    SettingBuiltInSkillPromptManaged: "这个内置技能使用 Vaultkeeper 管理的专用动作逻辑。",
+    SettingBuiltInSkillNotEditable: "内置技能可以启用/禁用和指定模型，但提示词与行为由插件管理。",
+    SettingUseDefaultQuickActionModel: "使用默认快速工具模型",
     SettingAddSkill: "添加技能",
     SettingSkillName: "技能名称",
     SettingSkillIcon: "图标",

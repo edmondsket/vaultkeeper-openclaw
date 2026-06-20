@@ -7,6 +7,74 @@ import { splitFrontmatter } from "Helpers/Helpers";
 import { Copy } from "Enums/Copy";
 import { Notice } from "obsidian";
 
+function builtInSkills(): ICustomSkill[] {
+    return [
+        {
+            id: "builtin-proofread",
+            name: Copy.QuickActionProofread,
+            icon: "scan-text",
+            prompt: Copy.SettingBuiltInSkillPromptManaged,
+            outputMode: "replace_selection",
+            enabled: true,
+            builtIn: true
+        },
+        {
+            id: "builtin-beautify",
+            name: Copy.QuickActionBeautify,
+            icon: "palette",
+            prompt: Copy.SettingBuiltInSkillPromptManaged,
+            outputMode: "replace_selection",
+            enabled: true,
+            builtIn: true
+        },
+        {
+            id: "builtin-apply-template",
+            name: Copy.QuickActionApplyTemplate,
+            icon: "notepad-text-dashed",
+            prompt: Copy.SettingBuiltInSkillPromptManaged,
+            outputMode: "replace_body",
+            enabled: true,
+            builtIn: true
+        },
+        {
+            id: "builtin-apply-links",
+            name: Copy.QuickActionApplyLinks,
+            icon: "link",
+            prompt: Copy.SettingBuiltInSkillPromptManaged,
+            outputMode: "replace_selection",
+            enabled: true,
+            builtIn: true
+        },
+        {
+            id: "builtin-apply-tags",
+            name: Copy.QuickActionApplyTags,
+            icon: "tag",
+            prompt: Copy.SettingBuiltInSkillPromptManaged,
+            outputMode: "replace_body",
+            enabled: true,
+            builtIn: true
+        },
+        {
+            id: "builtin-suggest-tags",
+            name: Copy.QuickActionSuggestTags,
+            icon: "tags",
+            prompt: Copy.SettingBuiltInSkillPromptManaged,
+            outputMode: "replace_body",
+            enabled: true,
+            builtIn: true
+        },
+        {
+            id: "builtin-generate-frontmatter",
+            name: Copy.QuickActionGenerateFrontmatter,
+            icon: "list-plus",
+            prompt: Copy.SettingBuiltInSkillPromptManaged,
+            outputMode: "replace_body",
+            enabled: true,
+            builtIn: true
+        }
+    ];
+}
+
 export class CustomSkillService {
     private readonly settingsService: SettingsService;
     private readonly fileSystemService: FileSystemService;
@@ -17,11 +85,24 @@ export class CustomSkillService {
     }
 
     public getAllSkills(): ICustomSkill[] {
-        return this.settingsService.settings.customSkills ?? [];
+        return [...this.getBuiltInSkills(), ...(this.settingsService.settings.customSkills ?? [])];
     }
 
     public getEnabledSkills(): ICustomSkill[] {
         return this.getAllSkills().filter(s => s.enabled);
+    }
+
+    public getBuiltInSkills(): ICustomSkill[] {
+        const settings = this.settingsService.settings.builtInSkillSettings ?? {};
+        return builtInSkills().map(skill => ({
+            ...skill,
+            enabled: settings[skill.id]?.enabled ?? true,
+            modelSelection: settings[skill.id]?.modelSelection
+        }));
+    }
+
+    public getEnabledBuiltInSkills(): ICustomSkill[] {
+        return this.getBuiltInSkills().filter(skill => skill.enabled);
     }
 
     public async addSkill(skill: Omit<ICustomSkill, "id">): Promise<ICustomSkill> {
@@ -36,6 +117,21 @@ export class CustomSkillService {
     }
 
     public async updateSkill(id: string, updates: Partial<ICustomSkill>): Promise<void> {
+        if (id.startsWith("builtin-")) {
+            await this.settingsService.updateSettings(settings => {
+                const previous = settings.builtInSkillSettings?.[id] ?? {};
+                settings.builtInSkillSettings = {
+                    ...(settings.builtInSkillSettings ?? {}),
+                    [id]: {
+                        ...previous,
+                        enabled: updates.enabled ?? previous.enabled,
+                        modelSelection: "modelSelection" in updates ? updates.modelSelection : previous.modelSelection
+                    }
+                };
+            });
+            return;
+        }
+
         await this.settingsService.updateSettings(settings => {
             settings.customSkills = (settings.customSkills ?? []).map(s =>
                 s.id === id ? { ...s, ...updates } : s
@@ -44,6 +140,10 @@ export class CustomSkillService {
     }
 
     public async deleteSkill(id: string): Promise<void> {
+        if (id.startsWith("builtin-")) {
+            return;
+        }
+
         await this.settingsService.updateSettings(settings => {
             settings.customSkills = (settings.customSkills ?? []).filter(s => s.id !== id);
         });

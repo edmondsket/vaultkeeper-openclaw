@@ -88,45 +88,17 @@ export class QuickActionsService {
     }
 
     private addBuiltInMenuItems(menu: Menu, editor: import("obsidian").Editor, view: MarkdownView | import("obsidian").MarkdownFileInfo) {
-        menu.addItem((item) => {
-            item.setTitle(Copy.QuickActionProofread)
-                .setIcon("scan-text")
-                .onClick(async () => this.quickActionsDefinitionsService.proofread(menu, editor, view));
-        });
-        menu.addItem((item) => {
-            item.setTitle(Copy.QuickActionBeautify)
-                .setIcon("palette")
-                .onClick(async () => this.quickActionsDefinitionsService.beautify(menu, editor, view));
-        });
-        menu.addItem((item) => {
-            item.setTitle(Copy.QuickActionApplyTemplate)
-                .setIcon("notepad-text-dashed")
-                .onClick(async () => this.quickActionsDefinitionsService.applyTemplate(menu, editor, view));
-        });
-        menu.addItem((item) => {
-            item.setTitle(Copy.QuickActionApplyLinks)
-                .setIcon("link")
-                .onClick(async () => this.quickActionsDefinitionsService.applyLinks(menu, editor, view));
-        });
-        menu.addItem((item) => {
-            item.setTitle(Copy.QuickActionApplyTags)
-                .setIcon("tag")
-                .onClick(async () => this.quickActionsDefinitionsService.applyTags(menu, editor, view));
-        });
-        menu.addItem((item) => {
-            item.setTitle(Copy.QuickActionSuggestTags)
-                .setIcon("tags")
-                .onClick(async () => this.quickActionsDefinitionsService.suggestTags(menu, editor, view));
-        });
-        menu.addItem((item) => {
-            item.setTitle(Copy.QuickActionGenerateFrontmatter)
-                .setIcon("list-plus")
-                .onClick(async () => this.quickActionsDefinitionsService.generateFrontmatter(menu, editor, view));
-        });
+        for (const skill of this.customSkillService.getEnabledBuiltInSkills()) {
+            menu.addItem((item) => {
+                item.setTitle(skill.name)
+                    .setIcon(skill.icon as any)
+                    .onClick(async () => this.executeBuiltInSkill(skill, menu, editor, view));
+            });
+        }
     }
 
     private addCustomSkillMenuItems(menu: Menu, editor: import("obsidian").Editor, view: MarkdownView | import("obsidian").MarkdownFileInfo) {
-        const skills = this.customSkillService.getEnabledSkills();
+        const skills = this.customSkillService.getEnabledSkills().filter(skill => !skill.builtIn);
         if (skills.length === 0) return;
 
         menu.addSeparator();
@@ -167,6 +139,32 @@ export class QuickActionsService {
             await this.customSkillService.executeSkill(skill, context);
         } finally {
             notice.hide();
+        }
+    }
+
+    private async executeBuiltInSkill(skill: ICustomSkill, menu: Menu, editor: import("obsidian").Editor, view: MarkdownView | import("obsidian").MarkdownFileInfo) {
+        switch (skill.id) {
+            case "builtin-proofread":
+                await this.quickActionsDefinitionsService.proofread(menu, editor, view, skill.modelSelection);
+                break;
+            case "builtin-beautify":
+                await this.quickActionsDefinitionsService.beautify(menu, editor, view, skill.modelSelection);
+                break;
+            case "builtin-apply-template":
+                await this.quickActionsDefinitionsService.applyTemplate(menu, editor, view, skill.modelSelection);
+                break;
+            case "builtin-apply-links":
+                await this.quickActionsDefinitionsService.applyLinks(menu, editor, view, skill.modelSelection);
+                break;
+            case "builtin-apply-tags":
+                await this.quickActionsDefinitionsService.applyTags(menu, editor, view, skill.modelSelection);
+                break;
+            case "builtin-suggest-tags":
+                await this.quickActionsDefinitionsService.suggestTags(menu, editor, view, skill.modelSelection);
+                break;
+            case "builtin-generate-frontmatter":
+                await this.quickActionsDefinitionsService.generateFrontmatter(menu, editor, view, skill.modelSelection);
+                break;
         }
     }
 
@@ -225,43 +223,23 @@ export class QuickActionsService {
     /* Commands for Android/Mobile */
 
     private registerCommands() {
-        // Register built-in quick actions as commands for mobile access
-        this.registerCommand("vaultkeeper-proofread", Copy.QuickActionProofread, "scan-text", async (editor, view) => {
-            const menu = new Menu();
-            await this.quickActionsDefinitionsService.proofread(menu, editor, view);
-        });
-        this.registerCommand("vaultkeeper-beautify", Copy.QuickActionBeautify, "palette", async (editor, view) => {
-            const menu = new Menu();
-            await this.quickActionsDefinitionsService.beautify(menu, editor, view);
-        });
-        this.registerCommand("vaultkeeper-apply-template", Copy.QuickActionApplyTemplate, "notepad-text-dashed", async (editor, view) => {
-            const menu = new Menu();
-            await this.quickActionsDefinitionsService.applyTemplate(menu, editor, view);
-        });
-        this.registerCommand("vaultkeeper-apply-links", Copy.QuickActionApplyLinks, "link", async (editor, view) => {
-            const menu = new Menu();
-            await this.quickActionsDefinitionsService.applyLinks(menu, editor, view);
-        });
-        this.registerCommand("vaultkeeper-apply-tags", Copy.QuickActionApplyTags, "tag", async (editor, view) => {
-            const menu = new Menu();
-            await this.quickActionsDefinitionsService.applyTags(menu, editor, view);
-        });
-        this.registerCommand("vaultkeeper-suggest-tags", Copy.QuickActionSuggestTags, "tags", async (editor, view) => {
-            const menu = new Menu();
-            await this.quickActionsDefinitionsService.suggestTags(menu, editor, view);
-        });
-        this.registerCommand("vaultkeeper-generate-frontmatter", Copy.QuickActionGenerateFrontmatter, "list-plus", async (editor, view) => {
-            const menu = new Menu();
-            await this.quickActionsDefinitionsService.generateFrontmatter(menu, editor, view);
-        });
+        for (const skill of this.customSkillService.getEnabledBuiltInSkills()) {
+            this.registerCommand(skill.id.replace("builtin-", "vaultkeeper-"), skill.name, skill.icon, async (editor, view) => {
+                const currentSkill = this.customSkillService.getEnabledBuiltInSkills().find(item => item.id === skill.id);
+                if (currentSkill) {
+                    const menu = new Menu();
+                    await this.executeBuiltInSkill(currentSkill, menu, editor, view);
+                }
+            });
+        }
     }
 
     private registerCustomSkillCommands() {
-        const skills = this.customSkillService.getEnabledSkills();
+        const skills = this.customSkillService.getEnabledSkills().filter(skill => !skill.builtIn);
         for (const skill of skills) {
             const commandId = `vaultkeeper-skill-${skill.id}`;
             this.registerCommand(commandId, skill.name, skill.icon as any, async (editor, view) => {
-                const currentSkill = this.customSkillService.getEnabledSkills().find(item => item.id === skill.id);
+                const currentSkill = this.customSkillService.getEnabledSkills().find(item => item.id === skill.id && !item.builtIn);
                 if (currentSkill) {
                     await this.executeCustomSkill(currentSkill, editor, view);
                 }

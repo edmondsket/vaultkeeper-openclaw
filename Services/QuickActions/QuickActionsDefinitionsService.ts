@@ -36,7 +36,7 @@ export class QuickActionsDefinitionsService {
         this.settingsService = Resolve<SettingsService>(Services.SettingsService);
     }
 
-    public async proofread(_menu: Menu, editor: Editor, view: MarkdownView | MarkdownFileInfo) {
+    public async proofread(_menu: Menu, editor: Editor, view: MarkdownView | MarkdownFileInfo, modelSelection?: IOpenClawModelSelection) {
         await this.asSerialAction("Proofread", async () => {
             const file = view.file;
             if (!file) {
@@ -53,7 +53,7 @@ export class QuickActionsDefinitionsService {
             const notice = this.showNotice(Copy.QuickActionProofreading);
             try {
                 if (selection.length > 0) {
-                    const result = await this.performAction(ProofreadPrompt, selection);
+                    const result = await this.performAction(ProofreadPrompt, selection, modelSelection);
                     if (result) {
                         await this.fileSystemService.patchFile(file, [selection], [result], false, false);
                     }
@@ -62,7 +62,7 @@ export class QuickActionsDefinitionsService {
                     if (body.trim() === "") {
                         return;
                     }
-                    const result = await this.performAction(ProofreadPrompt, body);
+                    const result = await this.performAction(ProofreadPrompt, body, modelSelection);
                     if (result) {
                         await this.fileSystemService.patchFile(file, [body], [result], false, false);
                     }
@@ -73,7 +73,7 @@ export class QuickActionsDefinitionsService {
         });
     }
 
-    public async beautify(_menu: Menu, editor: Editor, view: MarkdownView | MarkdownFileInfo) {
+    public async beautify(_menu: Menu, editor: Editor, view: MarkdownView | MarkdownFileInfo, modelSelection?: IOpenClawModelSelection) {
         await this.asSerialAction("Beautify", async () => {
             const file = view.file;
             if (!file) {
@@ -90,7 +90,7 @@ export class QuickActionsDefinitionsService {
             const notice = this.showNotice(Copy.QuickActionBeautifying);
             try {
                 if (selection.length > 0) {
-                    const result = await this.performAction(BeautifyPrompt, selection);
+                    const result = await this.performAction(BeautifyPrompt, selection, modelSelection);
                     if (result) {
                         await this.fileSystemService.patchFile(file, [selection], [result], false, false);
                     }
@@ -99,7 +99,7 @@ export class QuickActionsDefinitionsService {
                     if (body.trim() === "") {
                         return;
                     }
-                    const result = await this.performAction(BeautifyPrompt, body);
+                    const result = await this.performAction(BeautifyPrompt, body, modelSelection);
                     if (result) {
                         await this.fileSystemService.patchFile(file, [body], [result], false, false);
                     }
@@ -110,7 +110,7 @@ export class QuickActionsDefinitionsService {
         });
     }
 
-    public async applyTemplate(_menu: Menu, _editor: Editor, view: MarkdownView | MarkdownFileInfo) {
+    public async applyTemplate(_menu: Menu, _editor: Editor, view: MarkdownView | MarkdownFileInfo, modelSelection?: IOpenClawModelSelection) {
         const file = view.file;
         if (!file) {
             return;
@@ -144,7 +144,7 @@ export class QuickActionsDefinitionsService {
                 const notice = this.showNotice(Copy.QuickActionApplyingTemplate);
                 try {
                     const context = `${Copy.ApplyTemplateTemplateSeparator}\n${templateContent}\n${Copy.ApplyTemplateContentSeparator}\n${content}`;
-                    const result = await this.performAction(prompt, context);
+                    const result = await this.performAction(prompt, context, modelSelection);
                     if (result && result.trim() !== Copy.ApplyTemplateCancelled.toString()) {
                         await this.fileSystemService.writeToFile(file, result, false, false);
                     }
@@ -155,7 +155,7 @@ export class QuickActionsDefinitionsService {
         });
     }
 
-    public async applyLinks(_menu: Menu, editor: Editor, view: MarkdownView | MarkdownFileInfo) {
+    public async applyLinks(_menu: Menu, editor: Editor, view: MarkdownView | MarkdownFileInfo, modelSelection?: IOpenClawModelSelection) {
         await this.asSerialAction("Apply links", async () => {
             const file = view.file;
             if (!file) {
@@ -175,7 +175,7 @@ export class QuickActionsDefinitionsService {
             const notice = this.showNotice(Copy.QuickActionApplyingLinks);
             try {
                 if (selection.length > 0) {
-                    const result = await this.performAction(prompt, selection);
+                    const result = await this.performAction(prompt, selection, modelSelection);
                     if (result) {
                         await this.fileSystemService.patchFile(file, [selection], [result], false, false);
                     }
@@ -184,7 +184,7 @@ export class QuickActionsDefinitionsService {
                     if (body.trim() === "") {
                         return;
                     }
-                    const result = await this.performAction(prompt, body);
+                    const result = await this.performAction(prompt, body, modelSelection);
                     if (result) {
                         await this.fileSystemService.patchFile(file, [body], [result], false, false);
                     }
@@ -195,7 +195,7 @@ export class QuickActionsDefinitionsService {
         });
     }
 
-    public async applyTags(_menu: Menu, _editor: Editor, view: MarkdownView | MarkdownFileInfo) {
+    public async applyTags(_menu: Menu, _editor: Editor, view: MarkdownView | MarkdownFileInfo, modelSelection?: IOpenClawModelSelection) {
         await this.asSerialAction("Apply tags", async () => {
             const file = view.file;
             if (!file) {
@@ -218,7 +218,7 @@ export class QuickActionsDefinitionsService {
 
             const notice = this.showNotice(Copy.QuickActionApplyingTags);
             try {
-                const result = await this.performAction(prompt, body);
+                const result = await this.performAction(prompt, body, modelSelection);
                 if (!result || result.trim() === "") {
                     return;
                 }
@@ -243,7 +243,7 @@ export class QuickActionsDefinitionsService {
         });
     }
 
-    public async suggestTags(_menu: Menu, _editor: Editor, view: MarkdownView | MarkdownFileInfo) {
+    public async suggestTags(_menu: Menu, _editor: Editor, view: MarkdownView | MarkdownFileInfo, modelSelection?: IOpenClawModelSelection) {
         await this.asSerialAction("Suggest tags", async () => {
             const file = view.file;
             if (!file) {
@@ -266,7 +266,7 @@ export class QuickActionsDefinitionsService {
 
             const notice = this.showNotice(Copy.QuickActionSuggestingTags);
             try {
-                const result = await this.performAction(prompt, body);
+                const result = await this.performAction(prompt, body, modelSelection);
                 if (!result || result.trim() === "") {
                     return;
                 }
@@ -291,7 +291,7 @@ export class QuickActionsDefinitionsService {
         });
     }
 
-    public async generateFrontmatter(_menu: Menu, _editor: Editor, view: MarkdownView | MarkdownFileInfo) {
+    public async generateFrontmatter(_menu: Menu, _editor: Editor, view: MarkdownView | MarkdownFileInfo, modelSelection?: IOpenClawModelSelection) {
         await this.asSerialAction("Generate frontmatter", async () => {
             const file = view.file;
             if (!file) {
@@ -319,7 +319,7 @@ export class QuickActionsDefinitionsService {
 
             const notice = this.showNotice(Copy.QuickActionGeneratingFrontmatter);
             try {
-                const result = await this.performAction(prompt, body);
+                const result = await this.performAction(prompt, body, modelSelection);
                 if (!result || result.trim() === "") {
                     return;
                 }

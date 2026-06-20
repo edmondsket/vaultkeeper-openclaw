@@ -10,6 +10,7 @@ export class CustomSkillsSetting {
     private readonly settingsService: SettingsService;
     private readonly customSkillService: CustomSkillService;
     private containerEl: HTMLElement;
+    private listEl: HTMLElement | null = null;
 
     constructor(containerEl: HTMLElement) {
         this.containerEl = containerEl;
@@ -18,7 +19,11 @@ export class CustomSkillsSetting {
     }
 
     public render() {
-        const { containerEl } = this;
+        if (!this.listEl) {
+            this.listEl = this.containerEl.createDiv({ cls: "vaultkeeper-skills-setting-list" });
+        }
+        const containerEl = this.listEl;
+        containerEl.empty();
 
         new Setting(containerEl)
             .setHeading()
@@ -44,14 +49,21 @@ export class CustomSkillsSetting {
 
     private renderSkillItem(containerEl: HTMLElement, skill: ICustomSkill) {
         const setting = new Setting(containerEl)
-            .setName(skill.name)
-            .setDesc(skill.prompt.substring(0, 50) + "...")
+            .setName(skill.builtIn ? `${skill.name} · ${Copy.SettingBuiltInSkill}` : skill.name)
+            .setDesc(skill.builtIn ? Copy.SettingBuiltInSkillNotEditable : skill.prompt.substring(0, 50) + "...")
             .addToggle(toggle => toggle
                 .setValue(skill.enabled)
                 .onChange(async value => {
                     await this.customSkillService.updateSkill(skill.id, { enabled: value });
-                }))
-            .addButton(button => button
+                }));
+
+        this.addSkillModelDropdown(setting, skill);
+
+        if (skill.builtIn) {
+            return;
+        }
+
+        setting.addButton(button => button
                 .setIcon("pencil")
                 .setTooltip(Copy.SettingSkillEdit)
                 .onClick(() => {
@@ -59,8 +71,9 @@ export class CustomSkillsSetting {
                         await this.customSkillService.updateSkill(skill.id, updates);
                         this.render();
                     }).open();
-                }))
-            .addButton(button => button
+                }));
+
+        setting.addButton(button => button
                 .setIcon("trash")
                 .setTooltip(Copy.SettingSkillDelete)
                 .onClick(async () => {
@@ -69,6 +82,43 @@ export class CustomSkillsSetting {
                         this.render();
                     }
                 }));
+    }
+
+    private addSkillModelDropdown(setting: Setting, skill: ICustomSkill): void {
+        setting.addDropdown(dropdown => {
+            dropdown.addOption("", Copy.SettingUseDefaultQuickActionModel);
+            for (const provider of this.settingsService.settings.openClawProviders ?? []) {
+                if (provider.models.length === 0) continue;
+                const group = dropdown.selectEl.createEl("optgroup", { attr: { label: provider.name || Copy.UnnamedProvider } });
+                for (const model of provider.models) {
+                    const selection = { providerId: provider.id, modelId: model };
+                    group.createEl("option", { value: this.openClawSelectionKey(selection), text: model });
+                }
+            }
+
+            if (skill.modelSelection) {
+                dropdown.setValue(this.openClawSelectionKey(skill.modelSelection));
+            }
+
+            dropdown.onChange(async value => {
+                await this.customSkillService.updateSkill(skill.id, {
+                    modelSelection: value ? this.parseOpenClawSelectionKey(value) : undefined
+                });
+            });
+        });
+    }
+
+    private openClawSelectionKey(selection: IOpenClawModelSelection): string {
+        return `${encodeURIComponent(selection.providerId)}|${encodeURIComponent(selection.modelId)}`;
+    }
+
+    private parseOpenClawSelectionKey(value: string): IOpenClawModelSelection | undefined {
+        const separator = value.indexOf("|");
+        if (separator < 0) return undefined;
+        return {
+            providerId: decodeURIComponent(value.slice(0, separator)),
+            modelId: decodeURIComponent(value.slice(separator + 1))
+        };
     }
 }
 

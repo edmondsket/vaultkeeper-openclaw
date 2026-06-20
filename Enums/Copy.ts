@@ -559,7 +559,11 @@ Each AI provider has their own data policies:
 
     // Custom Skills
     SettingCustomSkills = "Custom Skills",
-    SettingCustomSkillsDesc = "Define your own quick actions with custom prompts.",
+    SettingCustomSkillsDesc = "Manage built-in quick actions and define your own custom prompt skills.",
+    SettingBuiltInSkill = "Built-in",
+    SettingBuiltInSkillPromptManaged = "This built-in skill uses Vaultkeeper's managed action logic.",
+    SettingBuiltInSkillNotEditable = "Built-in skills can be enabled/disabled and assigned a model, but their prompt and behavior are managed by the plugin.",
+    SettingUseDefaultQuickActionModel = "Use default quick action model",
     SettingAddSkill = "Add Skill",
     SettingSkillName = "Skill Name",
     SettingSkillIcon = "Icon",
