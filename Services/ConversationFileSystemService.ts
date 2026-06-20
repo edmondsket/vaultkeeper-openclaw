@@ -302,6 +302,40 @@ export class ConversationFileSystemService {
         return conversations;
     }
 
+    public async getConversationSummaries(): Promise<Array<{ title: string; created: Date; updated: Date; filePath: string }>> {
+        const files = await this.fileSystemService.listFilesInDirectory(Path.Conversations, false, true);
+        const summaries: Array<{ title: string; created: Date; updated: Date; filePath: string }> = [];
+
+        for (const file of files.filter(file => file.extension === "json")) {
+            try {
+                const content = await this.fileSystemService.readFilePath(file.path, true);
+                if (content instanceof Error) {
+                    Exception.log(content);
+                    continue;
+                }
+                const data = JSON.parse(content) as Record<string, unknown>;
+                if (typeof data.title !== "string" || typeof data.created !== "string" || typeof data.updated !== "string") {
+                    Exception.warn(`Skipping invalid conversation summary: ${file.path}`);
+                    continue;
+                }
+                summaries.push({
+                    title: data.title,
+                    created: new Date(data.created),
+                    updated: new Date(data.updated),
+                    filePath: file.path
+                });
+            } catch (error) {
+                Exception.log(error);
+            }
+        }
+
+        return summaries;
+    }
+
+    public async loadConversation(filePath: string): Promise<Conversation | Error> {
+        return this.readConversation(filePath);
+    }
+
     public async garbageCollectAttachments(): Promise<void | Error> {
         try {
             // 1. Get all attachment files

@@ -4,6 +4,8 @@
 	import { fade } from "svelte/transition";
 
   export let items: Array<{id: string, date: string, updated: Date, title: string, selected: boolean}>;
+  export let loading: boolean = false;
+  export let error: string = "";
   export let onClose: () => void;
   export let onDelete: (itemIds: string[]) => void;
   export let onSelect: (itemId: string) => void;
@@ -72,8 +74,8 @@
         type="text"
         id="search-input"
         class="top-bar-button conversation-search-input"
-        placeholder="Search conversations..."
-        disabled={items.length === 0}
+        placeholder={Copy.ButtonSearchConversations}
+        disabled={items.length === 0 || loading}
         bind:value={searchQuery}
         aria-label={Copy.ButtonSearchConversations}
       />
@@ -87,7 +89,15 @@
     </div>
   </div>
   <div class="conversation-history-modal-content">
-    {#if filteredItems.length === 0}
+    {#if loading}
+      <p class="history-empty-state" in:fade={{ duration: 200 }}>
+        {Copy.ConversationHistoryLoading}
+      </p>
+    {:else if error}
+      <p class="history-empty-state history-error-state" in:fade={{ duration: 200 }}>
+        {error}
+      </p>
+    {:else if filteredItems.length === 0}
       <p class="history-empty-state" in:fade={{ duration: 200 }}>
         {Copy.NoConversationsFound}
       </p>

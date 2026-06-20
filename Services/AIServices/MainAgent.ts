@@ -18,8 +18,8 @@ import { ChatMode } from "Enums/ChatMode";
 
 export class MainAgent extends BaseAgent {
 
-    public async runMainAgent(conversation: Conversation, chatMode: ChatMode, callbacks: IChatServiceCallbacks) {
-        await this.setAgentPromptAndTools(chatMode);
+    public async runMainAgent(conversation: Conversation, chatMode: ChatMode, callbacks: IChatServiceCallbacks, chatSkillInstruction?: string) {
+        await this.setAgentPromptAndTools(chatMode, chatSkillInstruction);
         this.debugService?.log("MainAgent", `Starting MainAgent (chatMode: ${chatMode})`);
 
         if (chatMode === ChatMode.Planning) {
@@ -46,7 +46,7 @@ export class MainAgent extends BaseAgent {
                 result.toolCall.toolId
             ));
 
-            await this.setAgentPromptAndTools(chatMode);
+            await this.setAgentPromptAndTools(chatMode, chatSkillInstruction);
             result = await this.runMainAgentLoop(conversation, callbacks);
         }
     }
@@ -86,14 +86,17 @@ export class MainAgent extends BaseAgent {
         return { planRequest: planRequest, toolCall: planToolCall };
     }
 
-    private async setAgentPromptAndTools(chatMode: ChatMode): Promise<void> {
+    private async setAgentPromptAndTools(chatMode: ChatMode, chatSkillInstruction?: string): Promise<void> {
         if (!this.ai) { // this shouldn't ever happen
             Exception.throw("Error: No AI provider has been set!");
         }
         this.ai.agentType = AgentType.Main;
         this.ai.aiToolUsageMode = AIToolUsageMode.Auto;
         this.ai.systemPrompt = await this.aiPrompt.systemInstruction();
-        this.ai.userInstruction = await this.aiPrompt.userInstruction();
+        const userInstruction = await this.aiPrompt.userInstruction();
+        this.ai.userInstruction = chatSkillInstruction?.trim()
+            ? `${userInstruction}\n\n## Skill instruction for this message\n${chatSkillInstruction.trim()}`
+            : userInstruction;
         this.ai.aiToolDefinitions = AIToolDefinitions.agentDefinitions(
             chatMode, this.memoriesEnabled(), this.updateMemoriesEnabled(), this.webViewerAccessEnabled());
     }

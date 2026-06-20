@@ -214,6 +214,7 @@ export enum EnglishCopy {
     ErrorDeleteConversationData = "Failed to delete conversation data for '{0}'",
     ErrorPlugin = "Vaultkeeper OpenClaw error: {0}",
     ErrorSaveConversation = "Failed to save conversation data for '{0}'",
+    ErrorLoadConversation = "Failed to load conversation '{0}'",
     ErrorNameConversation = "Failed to name conversation '{0}'",
     MediaOpen = "Open file",
     MediaFailed = "Media unavailable",
@@ -577,11 +578,18 @@ Each AI provider has their own data policies:
     SettingSkillOutputModeInsertAtCursor = "Insert at cursor",
     SettingSkillOutputModeCopyToClipboard = "Copy to clipboard",
     SettingSkillEnabled = "Enabled",
+    SettingSkillChatEnabled = "Use in chat",
+    SettingSkillPinned = "Pinned",
+    SettingChatSkill = "Chat skill",
+    SettingChatSkillNone = "No skill",
+    SettingChatSkillDesc = "Apply a skill instruction to the next message only.",
     SettingSkillEdit = "Edit",
     SettingSkillDelete = "Delete",
     SettingSkillDeleteConfirm = "Are you sure you want to delete this skill?",
     SkillResultCopiedToClipboard = "Result copied to clipboard",
     SkillExecuting = "Executing...",
+    ConversationHistoryLoading = "Loading conversations...",
+    ConversationHistoryLoadFailed = "Could not load conversation history",
 
 
 

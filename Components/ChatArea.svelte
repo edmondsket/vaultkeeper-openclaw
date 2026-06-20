@@ -15,11 +15,15 @@
 	import { Path } from "Enums/Path";
 	import type { ConversationMedia } from "Conversations/ConversationMedia";
 	import type VaultkeeperAIPlugin from "main";
+  import type { ICustomSkill } from "Services/SettingsService";
 
   export let messages: ConversationContent[] = [];
   export let currentThought: string | null = null;
   export let isSubmitting: boolean = false;
   export let chatContainer: HTMLDivElement;
+  export let pinnedChatSkills: ICustomSkill[] = [];
+  export let selectedSkillId = "";
+  export let onSkillSelect: (skillId: string) => void = () => {};
 
   export function resetChatArea() {
     messageElements = [];
@@ -277,6 +281,21 @@
     {#if messages.length === 0}
       <div class="conversation-empty-state">
         <div class="typing-in">{getGreetingByTime()}</div>
+        {#if pinnedChatSkills.length > 0}
+          <div class="pinned-chat-skills" aria-label={Copy.SettingSkillPinned}>
+            {#each pinnedChatSkills as skill}
+              <button
+                class:selected={selectedSkillId === skill.id}
+                class="pinned-chat-skill"
+                type="button"
+                on:click={() => onSkillSelect(skill.id)}
+                title={skill.prompt}
+              >
+                <span>{skill.name}</span>
+              </button>
+            {/each}
+          </div>
+        {/if}
       </div>
     {/if}
 
@@ -426,7 +445,6 @@
     font-style: italic;
     font-size: var(--font-ui-medium);
     color: var(--text-muted);
-    pointer-events: none;
   }
 
   .conversation-empty-state .typing-in {
@@ -437,6 +455,38 @@
     white-space: normal;
     overflow-wrap: anywhere;
     text-wrap: balance;
+  }
+
+  .pinned-chat-skills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--size-4-2);
+    margin: var(--size-4-4) auto 0;
+    max-width: min(100%, 34rem);
+  }
+
+  .pinned-chat-skill {
+    border: var(--border-width) solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-primary);
+    color: var(--text-normal);
+    padding: var(--size-2-2) var(--size-4-3);
+    box-shadow: 0 1px 4px color-mix(in srgb, var(--background-modifier-box-shadow) 35%, transparent);
+    cursor: pointer;
+    max-width: 100%;
+  }
+
+  .pinned-chat-skill.selected {
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 1px var(--interactive-accent);
+  }
+
+  .pinned-chat-skill span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   @container vaultkeeper-chat (max-width: 620px) {

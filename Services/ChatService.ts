@@ -63,7 +63,7 @@ export class ChatService {
 
 	public onNameChanged: ((name: string) => void) | undefined = undefined;
 
-	public async submit(conversation: Conversation, chatMode: ChatMode, userRequest: string, formattedRequest: string, attachments: Attachment[], callbacks: IChatServiceCallbacks) {
+	public async submit(conversation: Conversation, chatMode: ChatMode, userRequest: string, formattedRequest: string, attachments: Attachment[], callbacks: IChatServiceCallbacks, chatSkillInstruction?: string) {
 		if (!await this.semaphore.wait()) {
 			return;
 		}
@@ -112,7 +112,7 @@ export class ChatService {
 				callbacks.onSubmit();
 				callbacks.onStreamingUpdate();
 
-				await this.mainAgent.runMainAgent(conversation, chatMode, callbacks);
+				await this.mainAgent.runMainAgent(conversation, chatMode, callbacks, chatSkillInstruction);
 
 				if (namingPromise) {
 					const timeout = new Promise<void>(resolve => window.setTimeout(resolve, 5000));

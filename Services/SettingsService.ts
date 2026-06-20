@@ -84,11 +84,15 @@ export interface ICustomSkill {
     outputMode: "replace_selection" | "replace_body" | "insert_at_cursor" | "copy_to_clipboard";
     enabled: boolean;
     builtIn?: boolean;
+    chatEnabled?: boolean;
+    pinned?: boolean;
 }
 
 export interface IBuiltInSkillSetting {
     enabled?: boolean;
     modelSelection?: IOpenClawModelSelection;
+    chatEnabled?: boolean;
+    pinned?: boolean;
 }
 
 export interface IVaultkeeperAISettings {

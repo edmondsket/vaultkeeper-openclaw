@@ -16,7 +16,9 @@ function builtInSkills(): ICustomSkill[] {
             prompt: Copy.SettingBuiltInSkillPromptManaged,
             outputMode: "replace_selection",
             enabled: true,
-            builtIn: true
+            builtIn: true,
+            chatEnabled: false,
+            pinned: false
         },
         {
             id: "builtin-beautify",
@@ -25,7 +27,9 @@ function builtInSkills(): ICustomSkill[] {
             prompt: Copy.SettingBuiltInSkillPromptManaged,
             outputMode: "replace_selection",
             enabled: true,
-            builtIn: true
+            builtIn: true,
+            chatEnabled: false,
+            pinned: false
         },
         {
             id: "builtin-apply-template",
@@ -34,7 +38,9 @@ function builtInSkills(): ICustomSkill[] {
             prompt: Copy.SettingBuiltInSkillPromptManaged,
             outputMode: "replace_body",
             enabled: true,
-            builtIn: true
+            builtIn: true,
+            chatEnabled: false,
+            pinned: false
         },
         {
             id: "builtin-apply-links",
@@ -43,7 +49,9 @@ function builtInSkills(): ICustomSkill[] {
             prompt: Copy.SettingBuiltInSkillPromptManaged,
             outputMode: "replace_selection",
             enabled: true,
-            builtIn: true
+            builtIn: true,
+            chatEnabled: false,
+            pinned: false
         },
         {
             id: "builtin-apply-tags",
@@ -52,7 +60,9 @@ function builtInSkills(): ICustomSkill[] {
             prompt: Copy.SettingBuiltInSkillPromptManaged,
             outputMode: "replace_body",
             enabled: true,
-            builtIn: true
+            builtIn: true,
+            chatEnabled: false,
+            pinned: false
         },
         {
             id: "builtin-suggest-tags",
@@ -61,7 +71,9 @@ function builtInSkills(): ICustomSkill[] {
             prompt: Copy.SettingBuiltInSkillPromptManaged,
             outputMode: "replace_body",
             enabled: true,
-            builtIn: true
+            builtIn: true,
+            chatEnabled: false,
+            pinned: false
         },
         {
             id: "builtin-generate-frontmatter",
@@ -70,7 +82,9 @@ function builtInSkills(): ICustomSkill[] {
             prompt: Copy.SettingBuiltInSkillPromptManaged,
             outputMode: "replace_body",
             enabled: true,
-            builtIn: true
+            builtIn: true,
+            chatEnabled: false,
+            pinned: false
         }
     ];
 }
@@ -97,7 +111,9 @@ export class CustomSkillService {
         return builtInSkills().map(skill => ({
             ...skill,
             enabled: settings[skill.id]?.enabled ?? true,
-            modelSelection: settings[skill.id]?.modelSelection
+            modelSelection: settings[skill.id]?.modelSelection,
+            chatEnabled: settings[skill.id]?.chatEnabled ?? false,
+            pinned: settings[skill.id]?.pinned ?? false
         }));
     }
 
@@ -105,9 +121,23 @@ export class CustomSkillService {
         return this.getBuiltInSkills().filter(skill => skill.enabled);
     }
 
+    public getChatSkills(): ICustomSkill[] {
+        return this.getAllSkills().filter(skill => skill.enabled && !skill.builtIn && skill.chatEnabled !== false);
+    }
+
+    public getPinnedChatSkills(): ICustomSkill[] {
+        return this.getChatSkills().filter(skill => skill.pinned === true);
+    }
+
+    public getSkill(id: string): ICustomSkill | undefined {
+        return this.getAllSkills().find(skill => skill.id === id);
+    }
+
     public async addSkill(skill: Omit<ICustomSkill, "id">): Promise<ICustomSkill> {
         const newSkill: ICustomSkill = {
             ...skill,
+            chatEnabled: skill.chatEnabled ?? !skill.builtIn,
+            pinned: skill.pinned ?? false,
             id: this.generateSkillId()
         };
         await this.settingsService.updateSettings(settings => {
@@ -125,7 +155,9 @@ export class CustomSkillService {
                     [id]: {
                         ...previous,
                         enabled: updates.enabled ?? previous.enabled,
-                        modelSelection: "modelSelection" in updates ? updates.modelSelection : previous.modelSelection
+                        modelSelection: "modelSelection" in updates ? updates.modelSelection : previous.modelSelection,
+                        chatEnabled: updates.chatEnabled ?? previous.chatEnabled,
+                        pinned: updates.chatEnabled === false ? false : updates.pinned ?? previous.pinned
                     }
                 };
             });
@@ -134,7 +166,7 @@ export class CustomSkillService {
 
         await this.settingsService.updateSettings(settings => {
             settings.customSkills = (settings.customSkills ?? []).map(s =>
-                s.id === id ? { ...s, ...updates } : s
+                s.id === id ? { ...s, ...updates, pinned: updates.chatEnabled === false ? false : updates.pinned ?? s.pinned } : s
             );
         });
     }

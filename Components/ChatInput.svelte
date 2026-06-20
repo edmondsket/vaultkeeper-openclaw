@@ -27,8 +27,10 @@
 	import { hideDrawerElements, restoreDrawerElements } from "Helpers/ElementHelper";
 	import { replaceCopy } from "Helpers/Helpers";
   import ChatModelSelector from "./ChatModelSelector.svelte";
+  import ChatSkillSelector from "./ChatSkillSelector.svelte";
 
   export let attachments: Attachment[] = [];
+  export let selectedSkillId = "";
 
   export let hasNoApiKey: boolean;
   export let isSubmitting: boolean;
@@ -579,6 +581,7 @@
 <div id="input-container" class:stacked class:compact bind:this={inputContainerElement}>
   <div id="input-display-container" style:padding-top={attachments.length > 0 ? "var(--size-4-2)" : 0}>
     <ChatModelSelector disabled={isSubmitting || inputMode !== InputMode.Normal}/>
+    <ChatSkillSelector bind:selectedSkillId disabled={isSubmitting || inputMode !== InputMode.Normal}/>
     <InputDisplay bind:this={inputDisplay}/>
   </div>
 

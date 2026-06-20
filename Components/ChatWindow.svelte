@@ -3,7 +3,7 @@
   import { Services } from "Services/Services";
   import ChatArea from "./ChatArea.svelte";
   import ChatInput from "./ChatInput.svelte";
-	import { tick, onMount } from "svelte";
+	import { tick, onMount, onDestroy } from "svelte";
   import { conversationStore } from "../Stores/ConversationStore";
   import { Conversation } from "Conversations/Conversation";
 	import type VaultkeeperAIPlugin from "main";
@@ -19,6 +19,9 @@
 	import type { ExecutionPlanStore } from "Stores/ExecutionPlanStore";
 	import type { StreamingMarkdownService } from "Services/StreamingMarkdownService";
 	import { AITool, fromString } from "Enums/AITool";
+  import type { CustomSkillService } from "Services/CustomSkills/CustomSkillService";
+  import type { FileSystemService } from "Services/FileSystemService";
+  import type { ICustomSkill } from "Services/SettingsService";
 
   const plugin: VaultkeeperAIPlugin = Resolve<VaultkeeperAIPlugin>(Services.VaultkeeperAIPlugin);
   const executionPlanStore: ExecutionPlanStore = Resolve<ExecutionPlanStore>(Services.ExecutionPlanStore);
@@ -28,6 +31,8 @@
   const conversationService: ConversationFileSystemService = Resolve<ConversationFileSystemService>(Services.ConversationFileSystemService);
   const streamingMarkdownService: StreamingMarkdownService = Resolve<StreamingMarkdownService>(Services.StreamingMarkdownService);
   const abortService: AbortService = Resolve<AbortService>(Services.AbortService);
+  const customSkillService: CustomSkillService = Resolve<CustomSkillService>(Services.CustomSkillService);
+  const fileSystemService: FileSystemService = Resolve<FileSystemService>(Services.FileSystemService);
 
   let chatContainer: HTMLDivElement;
   let chatArea: ChatArea;
@@ -39,6 +44,8 @@
 
   let conversation: Conversation = new Conversation();
   let attachments: Attachment[] = [];
+  let selectedSkillId = "";
+  let pinnedChatSkills: ICustomSkill[] = customSkillService.getPinnedChatSkills();
 
   let currentThought: string | null = null;
 
@@ -86,6 +93,7 @@
   function handleStop() {
     chatService.stop();
     currentThought = null;
+    selectedSkillId = "";
   }
 
   async function handleSubmit(userRequest: string, formattedRequest: string) {
@@ -94,11 +102,13 @@
     }
 
     const currentRequest = userRequest;
+    const chatSkillInstruction = await resolveSelectedSkillInstruction();
 
     await chatService.submit(conversation, settingsService.settings.chatMode, currentRequest, formattedRequest, attachments, {
       onSubmit: () => {
         isSubmitting = true;
         attachments = [];
+        selectedSkillId = "";
         chatArea.updateChatAreaLayout("smooth");
       },
       onStreamingUpdate: () => {
@@ -158,7 +168,34 @@
         abortService.reset();
         chatArea.updateChatAreaLayout();
       },
+    }, chatSkillInstruction);
+  }
+
+  async function resolveSelectedSkillInstruction(): Promise<string | undefined> {
+    if (!selectedSkillId) return undefined;
+    const skill = customSkillService.getSkill(selectedSkillId);
+    if (!skill || skill.builtIn || !skill.enabled || skill.chatEnabled === false) {
+      return undefined;
+    }
+
+    const activeFile = workSpaceService.getActiveFile();
+    let fileContent = "";
+    if (activeFile) {
+      const content = await fileSystemService.readFile(activeFile);
+      fileContent = content instanceof Error ? "" : content;
+    }
+
+    return customSkillService.resolvePlaceholders(skill.prompt, {
+      file: activeFile ?? undefined,
+      fileContent,
+      fileName: activeFile?.name,
+      title: activeFile?.basename
     });
+  }
+
+  function selectPinnedSkill(skillId: string) {
+    selectedSkillId = skillId;
+    chatInput?.focusInput();
   }
 
   $: if ($conversationStore.shouldReset) {
@@ -167,6 +204,7 @@
 
     isSubmitting = false;
     currentThought = null;
+    selectedSkillId = "";
 
     chatService.onNameChanged?.("");
     conversationStore.clearResetFlag();
@@ -177,6 +215,7 @@
 
     isSubmitting = false;
     currentThought = null;
+    selectedSkillId = "";
 
     chatArea.resetChatArea();
 
@@ -192,18 +231,39 @@
     });
   }
 
+  const settingsSubscription: object = settingsService.subscribeToSettingsChanged(changed => {
+    if (changed.includes("customSkills") || changed.includes("builtInSkillSettings") || changed.includes("displayLanguage")) {
+      pinnedChatSkills = customSkillService.getPinnedChatSkills();
+      if (selectedSkillId && !customSkillService.getChatSkills().some(skill => skill.id === selectedSkillId)) {
+        selectedSkillId = "";
+      }
+    }
+  });
+
+  onDestroy(() => settingsService.unsubscribe(settingsSubscription));
+
 </script>
 
 <main class="container">
   <ChatPlanArea executionPlanState={executionPlanStore.executionPlanState} {busyPlanning}/>
 
   <div id="chat-container">
-    <ChatArea messages={conversation.contents} bind:this={chatArea} bind:currentThought bind:isSubmitting bind:chatContainer/>
+    <ChatArea
+      messages={conversation.contents}
+      bind:this={chatArea}
+      bind:currentThought
+      bind:isSubmitting
+      bind:chatContainer
+      {pinnedChatSkills}
+      {selectedSkillId}
+      onSkillSelect={selectPinnedSkill}
+    />
   </div>
 
   <ChatInput
     bind:this={chatInput}
     bind:attachments
+    bind:selectedSkillId
     {hasNoApiKey}
     {isSubmitting}
     onSubmit={handleSubmit}

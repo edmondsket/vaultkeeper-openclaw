@@ -57,6 +57,25 @@ export class CustomSkillsSetting {
                     await this.customSkillService.updateSkill(skill.id, { enabled: value });
                 }));
 
+        if (!skill.builtIn) {
+            setting.addToggle(toggle => toggle
+                .setTooltip(Copy.SettingSkillChatEnabled)
+                .setValue(skill.chatEnabled !== false)
+                .onChange(async value => {
+                    await this.customSkillService.updateSkill(skill.id, { chatEnabled: value });
+                    this.render();
+                }));
+
+            setting.addToggle(toggle => toggle
+                .setTooltip(Copy.SettingSkillPinned)
+                .setValue(skill.pinned === true)
+                .setDisabled(skill.chatEnabled === false)
+                .onChange(async value => {
+                    await this.customSkillService.updateSkill(skill.id, { pinned: value });
+                    this.render();
+                }));
+        }
+
         this.addSkillModelDropdown(setting, skill);
 
         if (skill.builtIn) {
@@ -186,6 +205,24 @@ class SkillEditModal extends Modal {
                 .setValue(enabledValue)
                 .onChange(value => { enabledValue = value; }));
 
+        let chatEnabledValue = this.skill?.chatEnabled ?? true;
+        let pinnedValue = this.skill?.pinned ?? false;
+
+        new Setting(contentEl)
+            .setName(Copy.SettingSkillChatEnabled)
+            .addToggle(toggle => toggle
+                .setValue(chatEnabledValue)
+                .onChange(value => {
+                    chatEnabledValue = value;
+                    if (!value) pinnedValue = false;
+                }));
+
+        new Setting(contentEl)
+            .setName(Copy.SettingSkillPinned)
+            .addToggle(toggle => toggle
+                .setValue(pinnedValue)
+                .onChange(value => { pinnedValue = value; }));
+
         // Save button
         new Setting(contentEl)
             .addButton(button => button
@@ -197,7 +234,9 @@ class SkillEditModal extends Modal {
                         icon: iconValue,
                         prompt: promptValue,
                         outputMode: outputModeValue,
-                        enabled: enabledValue
+                        enabled: enabledValue,
+                        chatEnabled: chatEnabledValue,
+                        pinned: chatEnabledValue ? pinnedValue : false
                     });
                     this.close();
                 }));

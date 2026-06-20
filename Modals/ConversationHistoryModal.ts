@@ -1,6 +1,5 @@
 import { Modal, Notice } from 'obsidian';
 import ConversationHistoryModalSvelte from './ConversationHistoryModalSvelte.svelte';
-import type { Conversation } from 'Conversations/Conversation';
 import { mount, unmount } from 'svelte';
 import { Resolve } from 'Services/DependencyService';
 import { Services } from 'Services/Services';
@@ -31,7 +30,6 @@ export class ConversationHistoryModal extends Modal {
 
     private component: ReturnType<typeof mount> | null = null;
     private items: IListItem[] = [];
-    private conversations: Conversation[] = [];
     public onModalClose?: () => void;
 
     constructor() {
@@ -40,26 +38,6 @@ export class ConversationHistoryModal extends Modal {
     }
 
     onOpen() {
-        void this.initializeContent();
-    }
-
-    private async initializeContent() {
-        this.conversations = await this.conversationFileSystemService.getAllConversations();
-
-        this.items = this.conversations
-        .sort((a, b) => b.updated.getTime() - a.updated.getTime())
-        .map((conversation) => {
-            const filePath = this.conversationFileSystemService.generateConversationPath(conversation);
-            return {
-                id: filePath,
-                date: StringTools.dateToString(conversation.created, false),
-                updated: conversation.updated,
-                title: conversation.title,
-                selected: false,
-                filePath: filePath
-            };
-        });
-
         const { contentEl, modalEl, containerEl } = this;
 
         containerEl.addClass(Selector.ConversationHistoryModal);
@@ -68,25 +46,56 @@ export class ConversationHistoryModal extends Modal {
         this.component = mount(ConversationHistoryModalSvelte, {
             target: contentEl,
             props: {
-                items: this.items,
+                items: [],
+                loading: true,
+                error: "",
                 onClose: () => this.close(),
                 onDelete: (itemIds: string[]) => this.handleDelete(itemIds),
                 onSelect: (itemId: string) => this.handleSelect(itemId)
             }
         });
+        void this.initializeContent();
     }
 
-    handleSelect(itemId: string) {
-        const item = this.items.find(i => i.id === itemId);
-        const conversation = this.conversations.find(c =>
-            this.conversationFileSystemService.generateConversationPath(c) === itemId
-        );
-
-        if (conversation && item) {
-            this.chatService.stop();
-            conversationStore.loadConversation(conversation, item.filePath);
-            this.close();
+    private async initializeContent() {
+        try {
+            const summaries = await this.conversationFileSystemService.getConversationSummaries();
+            this.items = summaries
+                .sort((a, b) => b.updated.getTime() - a.updated.getTime())
+                .map((summary) => ({
+                    id: summary.filePath,
+                    date: StringTools.dateToString(summary.created, false),
+                    updated: summary.updated,
+                    title: summary.title,
+                    selected: false,
+                    filePath: summary.filePath
+                }));
+            if (this.component) {
+                this.component.items = this.items;
+                this.component.loading = false;
+                this.component.error = "";
+            }
+        } catch (error) {
+            if (this.component) {
+                this.component.loading = false;
+                this.component.error = `${Copy.ConversationHistoryLoadFailed}: ${String(error)}`;
+            }
         }
+    }
+
+    async handleSelect(itemId: string) {
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return;
+
+        const conversation = await this.conversationFileSystemService.loadConversation(item.filePath);
+        if (conversation instanceof Error) {
+            new Notice(replaceCopy(Copy.ErrorLoadConversation, [item.title]));
+            return;
+        }
+
+        this.chatService.stop();
+        conversationStore.loadConversation(conversation, item.filePath);
+        this.close();
     }
 
     async handleDelete(itemIds: string[]) {
