@@ -1157,6 +1157,48 @@ describe('OpenAI', () => {
     });
 
     describe('formatBinaryFiles', () => {
+		it('inlines images as a Responses API data URL without a Files API upload', async () => {
+			const result = await (openai as any).formatInlineAttachments([{
+				fileName: 'photo.png',
+				base64: 'cG5n',
+				getMimeType: () => 'image/png',
+				getBase64: async () => 'cG5n'
+			}]);
+
+			expect(result).toEqual({
+				type: 'message',
+				role: 'user',
+				content: [
+					{ type: 'input_text', text: replaceCopy(Copy.AttachedFile, ['photo.png']) },
+					{ type: 'input_image', image_url: 'data:image/png;base64,cG5n', detail: 'auto' }
+				]
+			});
+		});
+
+		it('inlines PDFs using file_data and filename', async () => {
+			const result = await (openai as any).formatInlineAttachments([{
+				fileName: 'report.pdf',
+				base64: 'cGRm',
+				getMimeType: () => 'application/pdf'
+			}]);
+
+			expect(result.content[1]).toEqual({
+				type: 'input_file',
+				filename: 'report.pdf',
+				file_data: 'data:application/pdf;base64,cGRm'
+			});
+		});
+
+		it('decodes text attachments into input_text', async () => {
+			const result = await (openai as any).formatInlineAttachments([{
+				fileName: 'note.txt',
+				base64: '5L2g5aW9',
+				getMimeType: () => 'text/plain'
+			}]);
+
+			expect(result.content[1]).toEqual({ type: 'input_text', text: '你好' });
+		});
+
         it('should format PDF files with file_id reference', () => {
             const attachment = {
                 fileName: 'report.pdf',

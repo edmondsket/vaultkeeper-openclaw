@@ -102,8 +102,13 @@ export interface OpenAIToolTool {
 export interface ResponsesAPIMessageInput {
     type: "message";
     role: "user" | "assistant";
-    content: string;
+    content: string | ResponsesAPIContentBlock[];
 }
+
+export type ResponsesAPIContentBlock =
+    | { type: "input_text"; text: string }
+    | { type: "input_image"; image_url: string; detail?: "auto" | "low" | "high" }
+    | { type: "input_file"; filename: string; file_data: string };
 
 // Function call item (reconstructed from storage or appended from response.output)
 export interface ResponsesAPIToolCallInput {

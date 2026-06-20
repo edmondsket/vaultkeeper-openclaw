@@ -7,7 +7,7 @@ import { AIProvider } from "Enums/ApiProvider";
 import { AIToolCall } from "AIClasses/AIToolCall";
 import { fromString as aiToolFromString } from "Enums/AITool";
 import type { IAIToolDefinition } from "AIClasses/ToolDefinitions/IAIToolDefinition";
-import type { ResponseEvent, ResponseOutputTextDelta, ResponseOutputItemAdded, ResponseOutputItemDone, ResponseErrorEvent, ResponseFailedEvent, OpenAIToolTool, ResponsesAPIInput, ResponsesAPINonStreamingResponse } from "./OpenAITypes";
+import type { ResponseEvent, ResponseOutputTextDelta, ResponseOutputItemAdded, ResponseOutputItemDone, ResponseErrorEvent, ResponseFailedEvent, OpenAIToolTool, ResponsesAPIInput, ResponsesAPIContentBlock, ResponsesAPINonStreamingResponse } from "./OpenAITypes";
 import { Exception } from "Helpers/Exception";
 import { ApiError, ApiErrorType } from "Types/ApiError";
 import { MimeType, toMimeType } from "Enums/MimeType";
@@ -21,6 +21,7 @@ import { AgentType } from "Enums/AgentType";
 import { requestUrl } from "obsidian";
 import { AbortService } from "Services/AbortService";
 import type { IResponseMedia } from "Types/ResponseMedia";
+import { StringTools } from "Helpers/StringTools";
 
 export class OpenAI extends BaseAIClass {
 
@@ -45,11 +46,6 @@ The function tools included with this request execute in the user's active Obsid
     }
 
     public async* streamRequest(conversation: Conversation): AsyncGenerator<IStreamChunk, void, unknown> {
-
-        // Refresh file cache only if conversation has attachments
-        if (conversation.hasAttachments()) {
-            await this.aiFileService.refreshCache();
-        }
 
         const input = await this.extractContents(conversation.contents);
 
@@ -505,21 +501,7 @@ The function tools included with this request execute in the user's active Obsid
 
             // Case 2: Binary file attachments
             if (content.attachments && content.attachments.length > 0) {
-                const { formattedParts, uploadErrors } = await this.processAttachments<ResponsesAPIInput>(
-                    content.attachments,
-                    (attachments) => this.formatBinaryFiles(attachments)
-                );
-
-                results.push(...formattedParts);
-
-                for (const uploadError of uploadErrors) {
-                    // OpenAI formatBinaryFiles returns array with role wrapper, so add as separate message
-                    results.push({
-                        type: "message",
-                        role: "user",
-                        content: Exception.messageFrom(uploadError)
-                    });
-                }
+                results.push(await this.formatInlineAttachments(content.attachments));
                 continue;
             }
 
@@ -566,6 +548,37 @@ The function tools included with this request execute in the user's active Obsid
         }
 
         return results;
+    }
+
+    private async formatInlineAttachments(attachments: Attachment[]): Promise<ResponsesAPIInput> {
+        const blocks: ResponsesAPIContentBlock[] = [];
+
+        for (const attachment of attachments) {
+            const mimeType = toMimeType(attachment.getMimeType());
+            blocks.push({ type: "input_text", text: replaceCopy(Copy.AttachedFile, [attachment.fileName]) });
+
+            if (MimeTypeToFileTypes[mimeType].some(fileType => isTextFile(fileType))) {
+                const text = new TextDecoder().decode(StringTools.toBytes(attachment.base64));
+                blocks.push({ type: "input_text", text });
+            } else if (mimeType === MimeType.IMAGE_JPEG || mimeType === MimeType.IMAGE_PNG || mimeType === MimeType.IMAGE_WEBP) {
+                const imageBase64 = await attachment.getBase64();
+                blocks.push({
+                    type: "input_image",
+                    image_url: `data:${mimeType};base64,${imageBase64}`,
+                    detail: "auto"
+                });
+            } else if (mimeType === MimeType.APPLICATION_PDF) {
+                blocks.push({
+                    type: "input_file",
+                    filename: attachment.fileName,
+                    file_data: `data:${mimeType};base64,${attachment.base64}`
+                });
+            } else {
+                blocks.push({ type: "input_text", text: `Unsupported mime type '${mimeType}': ${attachment.fileName}` });
+            }
+        }
+
+        return { type: "message", role: "user", content: blocks };
     }
 
     protected mapFunctionDefinitions(aiToolDefinitions: IAIToolDefinition[]): OpenAIToolTool[] {
