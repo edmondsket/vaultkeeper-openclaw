@@ -12,6 +12,7 @@ import type { ChatService } from 'Services/ChatService';
 import type VaultkeeperAIPlugin from 'main';
 import { Copy } from 'Enums/Copy';
 import { replaceCopy } from 'Helpers/Helpers';
+import { writable, type Writable } from 'svelte/store';
 
 interface IListItem {
     id: string;
@@ -29,6 +30,7 @@ export class ConversationHistoryModal extends Modal {
     private readonly chatService: ChatService = Resolve<ChatService>(Services.ChatService);
 
     private component: ReturnType<typeof mount> | null = null;
+    private state: Writable<{ items: IListItem[]; loading: boolean; error: string }> | null = null;
     private items: IListItem[] = [];
     public onModalClose?: () => void;
 
@@ -43,12 +45,16 @@ export class ConversationHistoryModal extends Modal {
         containerEl.addClass(Selector.ConversationHistoryModal);
         modalEl.addClass(Selector.ConversationHistoryModal);
 
+        this.state = writable({
+            items: [],
+            loading: true,
+            error: ""
+        });
+
         this.component = mount(ConversationHistoryModalSvelte, {
             target: contentEl,
             props: {
-                items: [],
-                loading: true,
-                error: "",
+                state: this.state,
                 onClose: () => this.close(),
                 onDelete: (itemIds: string[]) => this.handleDelete(itemIds),
                 onSelect: (itemId: string) => this.handleSelect(itemId)
@@ -70,16 +76,9 @@ export class ConversationHistoryModal extends Modal {
                     selected: false,
                     filePath: summary.filePath
                 }));
-            if (this.component) {
-                this.component.items = this.items;
-                this.component.loading = false;
-                this.component.error = "";
-            }
+            this.state?.set({ items: this.items, loading: false, error: "" });
         } catch (error) {
-            if (this.component) {
-                this.component.loading = false;
-                this.component.error = `${Copy.ConversationHistoryLoadFailed}: ${String(error)}`;
-            }
+            this.state?.set({ items: this.items, loading: false, error: `${Copy.ConversationHistoryLoadFailed}: ${String(error)}` });
         }
     }
 
@@ -120,9 +119,7 @@ export class ConversationHistoryModal extends Modal {
 
         this.items = this.items.filter(item => !deletedIds.includes(item.id));
 
-        if (this.component) {
-            this.component.items = this.items;
-        }
+        this.state?.update(state => ({ ...state, items: this.items }));
 
         if (shouldResetChat) {
             this.chatService.stop();
@@ -136,6 +133,7 @@ export class ConversationHistoryModal extends Modal {
             void unmount(this.component);
             this.component = null;
         }
+        this.state = null;
 
         const { contentEl } = this;
         contentEl.empty();

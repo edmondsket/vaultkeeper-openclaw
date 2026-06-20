@@ -19,6 +19,7 @@ export class ConversationFileSystemService {
     public static readonly MAX_MEDIA_ITEM_BYTES = 20_000_000;
     public static readonly MAX_MEDIA_RESPONSE_BYTES = 50_000_000;
     private static readonly MEDIA_DOWNLOAD_TIMEOUT_MS = 30_000;
+    private static readonly SUMMARY_READ_TIMEOUT_MS = 2_000;
 
     private fileSystemService: FileSystemService;
     private aiFileService: IAIFileService | undefined;
@@ -304,32 +305,39 @@ export class ConversationFileSystemService {
 
     public async getConversationSummaries(): Promise<Array<{ title: string; created: Date; updated: Date; filePath: string }>> {
         const files = await this.fileSystemService.listFilesInDirectory(Path.Conversations, false, true);
-        const summaries: Array<{ title: string; created: Date; updated: Date; filePath: string }> = [];
-
-        for (const file of files.filter(file => file.extension === "json")) {
+        const summaries = await Promise.all(files
+            .filter(file => file.extension === "json")
+            .map(async file => {
             try {
-                const content = await this.fileSystemService.readFilePath(file.path, true);
+                const content = await Promise.race([
+                    this.fileSystemService.readFilePath(file.path, true),
+                    new Promise<Error>(resolve => window.setTimeout(
+                        () => resolve(Exception.new(`Timed out reading conversation summary: ${file.path}`)),
+                        ConversationFileSystemService.SUMMARY_READ_TIMEOUT_MS
+                    ))
+                ]);
                 if (content instanceof Error) {
                     Exception.log(content);
-                    continue;
+                    return null;
                 }
                 const data = JSON.parse(content) as Record<string, unknown>;
                 if (typeof data.title !== "string" || typeof data.created !== "string" || typeof data.updated !== "string") {
                     Exception.warn(`Skipping invalid conversation summary: ${file.path}`);
-                    continue;
+                    return null;
                 }
-                summaries.push({
+                return {
                     title: data.title,
                     created: new Date(data.created),
                     updated: new Date(data.updated),
                     filePath: file.path
-                });
+                };
             } catch (error) {
                 Exception.log(error);
+                return null;
             }
-        }
+        }));
 
-        return summaries;
+        return summaries.filter(summary => summary !== null);
     }
 
     public async loadConversation(filePath: string): Promise<Conversation | Error> {

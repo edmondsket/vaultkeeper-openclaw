@@ -1,10 +1,10 @@
 {
-  "id": "vaultkeeper-openclaw",
-  "name": "Vaultkeeper OpenClaw",
-  "version": "0.10.6",
-  "minAppVersion": "1.9.14",
-  "description": "Let OpenClaw read, search, create, edit, move, and delete Obsidian notes through the Responses API.",
-  "author": "edmondsket; based on Vaultkeeper AI by Andy-Stack",
-  "authorUrl": "https://github.com/edmondsket",
-  "isDesktopOnly": false
+	"id": "vaultkeeper-openclaw",
+	"name": "Vaultkeeper OpenClaw",
+	"version": "0.10.7",
+	"minAppVersion": "1.9.14",
+	"description": "Let OpenClaw read, search, create, edit, move, and delete Obsidian notes through the Responses API.",
+	"author": "edmondsket; based on Vaultkeeper AI by Andy-Stack",
+	"authorUrl": "https://github.com/edmondsket",
+	"isDesktopOnly": false
 }

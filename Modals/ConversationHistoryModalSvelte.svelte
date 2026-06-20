@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { Copy } from "Enums/Copy";
 	import { setIcon } from "obsidian";
+	import type { Writable } from "svelte/store";
 	import { fade } from "svelte/transition";
 
-  export let items: Array<{id: string, date: string, updated: Date, title: string, selected: boolean}>;
-  export let loading: boolean = false;
-  export let error: string = "";
+  interface IHistoryModalState {
+    items: Array<{id: string, date: string, updated: Date, title: string, selected: boolean}>;
+    loading: boolean;
+    error: string;
+  }
+
+  export let state: Writable<IHistoryModalState>;
   export let onClose: () => void;
   export let onDelete: (itemIds: string[]) => void;
   export let onSelect: (itemId: string) => void;
@@ -23,6 +28,9 @@
   let selectedItems = new Set<string>();
   let searchQuery = "";
 
+  $: items = $state.items;
+  $: loading = $state.loading;
+  $: error = $state.error;
   $: filteredItems = items.filter(item =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase())
   ).sort((a, b) => b.updated.getTime() - a.updated.getTime());
@@ -49,7 +57,6 @@
       return;
     }
     onDelete(Array.from(selectedItems));
-    items = items.filter((item) => !selectedItems.has(item.id))
     selectedItems.clear();
     selectedItems = selectedItems;
   }
