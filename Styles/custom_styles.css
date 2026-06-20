@@ -112,11 +112,21 @@ body:not(.is-tablet) .workspace-drawer.mod-right {
 }
 
 .ai-exclusions-input {
-  width: max(350px, 100%);
-  height: 110px;
+  width: min(100%, 560px);
+  min-width: min(100%, 350px);
+  min-height: 120px;
   font: var(--font-monospace);
   font-size: 0.9em;
-  resize: none;
+  line-height: 1.45;
+  color: var(--text-normal);
+  background-color: var(--background-primary);
+  resize: vertical;
+  opacity: 1;
+}
+
+.ai-exclusions-input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 .setting-item-memories-disabled-accent .checkbox-container {
