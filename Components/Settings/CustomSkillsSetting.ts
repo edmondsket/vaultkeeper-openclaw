@@ -1,3 +1,4 @@
+declare const app: import("obsidian").App;
 import { Setting, Modal, ButtonComponent, DropdownComponent, TextComponent, TextAreaComponent, ToggleComponent, Notice } from "obsidian";
 import { Copy } from "Enums/Copy";
 import type { SettingsService, ICustomSkill, IOpenClawModelSelection } from "Services/SettingsService";
@@ -76,7 +77,7 @@ class SkillEditModal extends Modal {
     private onSave: (skill: Partial<ICustomSkill>) => Promise<void>;
 
     constructor(skill: ICustomSkill | null, onSave: (skill: Partial<ICustomSkill>) => Promise<void>) {
-        super((window as any).app);
+        super(app);
         this.skill = skill;
         this.onSave = onSave;
     }
