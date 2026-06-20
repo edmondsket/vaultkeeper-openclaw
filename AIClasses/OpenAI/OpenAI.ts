@@ -5,7 +5,7 @@ import type { ConversationContent } from "Conversations/ConversationContent";
 import type { Attachment } from "Conversations/Attachment";
 import { AIProvider } from "Enums/ApiProvider";
 import { AIToolCall } from "AIClasses/AIToolCall";
-import { fromString as aiToolFromString } from "Enums/AITool";
+import { AITool, fromString as aiToolFromString } from "Enums/AITool";
 import type { IAIToolDefinition } from "AIClasses/ToolDefinitions/IAIToolDefinition";
 import type { ResponseEvent, ResponseOutputTextDelta, ResponseOutputItemAdded, ResponseOutputItemDone, ResponseErrorEvent, ResponseFailedEvent, OpenAIToolTool, ResponsesAPIInput, ResponsesAPIContentBlock, ResponsesAPINonStreamingResponse } from "./OpenAITypes";
 import { Exception } from "Helpers/Exception";
@@ -141,13 +141,15 @@ The function tools included with this request execute in the user's active Obsid
     private parseNonStreamingResponse(data: ResponsesAPINonStreamingResponse): IStreamChunk[] {
         const chunks: IStreamChunk[] = [];
 
+        const outputText = this.extractOutputText(data);
+        if (outputText) {
+            chunks.push({ content: outputText, isComplete: false });
+        }
+
         for (const item of data.output ?? []) {
             if (item.type === "message") {
-                    const text = item.content
-                        .filter(part => part.type === "output_text" && part.text)
-                        .map(part => part.text)
-                        .join("");
-                    if (text) {
+                    const text = this.extractOutputText(item);
+                    if (text && text !== outputText) {
                     chunks.push({ content: text, isComplete: false });
                     }
                     const media = this.uniqueResponseMedia(this.extractResponseMedia(item));
@@ -158,8 +160,12 @@ The function tools included with this request execute in the user's active Obsid
             if (item.type === "function_call") {
                 chunks.push({ content: "", isComplete: false, toolCallStarted: item.name });
                     try {
+                        const toolName = aiToolFromString(item.name);
+                        if (toolName === AITool.Unknown) {
+                            throw new Error(`Unsupported tool call from OpenClaw: ${item.name}`);
+                        }
                         const toolCall = new AIToolCall(
-                            aiToolFromString(item.name),
+                            toolName,
                             JSON.parse(item.arguments) as Record<string, unknown>,
                             item.call_id || item.id,
                             undefined
@@ -298,6 +304,7 @@ The function tools included with this request execute in the user's active Obsid
                     if (media.length > 0) {
                         return { content: "", isComplete: true, media };
                     }
+                    text = this.extractOutputText(event);
                     break;
                 }
 
@@ -325,9 +332,13 @@ The function tools included with this request execute in the user's active Obsid
                         itemDoneEvent.item.name &&
                         itemDoneEvent.item.arguments) {
                         try {
+                            const toolName = aiToolFromString(itemDoneEvent.item.name);
+                            if (toolName === AITool.Unknown) {
+                                throw new Error(`Unsupported tool call from OpenClaw: ${itemDoneEvent.item.name}`);
+                            }
                             const args = JSON.parse(itemDoneEvent.item.arguments) as Record<string, unknown>;
                             toolCall = new AIToolCall(
-                                aiToolFromString(itemDoneEvent.item.name),
+                                toolName,
                                 args,
                                 itemDoneEvent.item.call_id || itemDoneEvent.item_id,
                                 undefined  // thoughtSignature not used by OpenAI
@@ -378,6 +389,44 @@ The function tools included with this request execute in the user's active Obsid
         } catch (error) {
             return this.createErrorChunk(error);
         }
+    }
+
+    private extractOutputText(value: unknown): string {
+        if (!value || typeof value !== "object") return "";
+
+        const record = value as Record<string, unknown>;
+        const type = typeof record.type === "string" ? record.type : "";
+        const texts: string[] = [];
+
+        if (typeof record.output_text === "string" && record.output_text.trim()) {
+            return record.output_text;
+        }
+
+        if ((type === "output_text" || type === "text" || type === "input_text") && typeof record.text === "string") {
+            return record.text;
+        }
+
+        if (type === "message") {
+            const content = record.content;
+            if (typeof content === "string") {
+                texts.push(content);
+            }
+        }
+
+        for (const key of ["content", "output", "item", "part", "message", "response", "choices"]) {
+            const child = record[key];
+            if (Array.isArray(child)) {
+                for (const item of child) {
+                    const text = this.extractOutputText(item);
+                    if (text) texts.push(text);
+                }
+            } else if (child && typeof child === "object") {
+                const text = this.extractOutputText(child);
+                if (text) texts.push(text);
+            }
+        }
+
+        return texts.join("");
     }
 
     private extractResponseMedia(value: unknown): IResponseMedia[] {
