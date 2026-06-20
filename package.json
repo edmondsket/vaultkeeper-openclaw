@@ -1,6 +1,6 @@
 {
 	"name": "vaultkeeper-openclaw",
-	"version": "0.10.7",
+	"version": "0.10.8",
 	"description": "OpenClaw-powered agent assistant for Obsidian.",
 	"main": "main.js",
 	"type": "module",

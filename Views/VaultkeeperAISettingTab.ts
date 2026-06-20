@@ -10,6 +10,7 @@ import type { IOpenClawModelSelection, IOpenClawProvider, SettingsService } from
 import { Services } from "Services/Services";
 import { S3FileService } from "Services/S3Storage/S3FileService";
 import { CustomSkillsSetting } from "Components/Settings/CustomSkillsSetting";
+import { PromptOverridesSetting } from "Components/Settings/PromptOverridesSetting";
 import { closePluginSettings } from "Helpers/Helpers";
 import type { MemoriesService } from "Services/MemoriesService";
 import { RegisterAiProvider } from "Services/ServiceRegistration";
@@ -235,6 +236,9 @@ export class VaultkeeperAISettingTab extends PluginSettingTab {
 
 		/* Custom Skills */
 		new CustomSkillsSetting(containerEl).render();
+
+		/* Prompt Overrides */
+		new PromptOverridesSetting(containerEl, () => this.display()).render();
 
 		/* Context Header */
 		new Setting(containerEl)

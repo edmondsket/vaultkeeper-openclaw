@@ -10,6 +10,7 @@ import type { MemoriesService } from "Services/MemoriesService";
 import { replaceCopy } from 'Helpers/Helpers';
 import { Copy } from "Enums/Copy";
 import { ChatMode } from "Enums/ChatMode";
+import type { PromptOverrideKey } from "Services/SettingsService";
 
 export interface IPrompt {
   systemInstruction(): Promise<string>;
@@ -32,19 +33,24 @@ export class AIPrompt implements IPrompt {
   }
 
   public async systemInstruction(): Promise<string> {
-    return this.buildPrompt(SystemInstruction);
+    return this.buildPrompt(this.promptOverride("mainSystem", SystemInstruction));
   }
 
   public async orchestrationInstruction(): Promise<string> {
-    return this.buildPrompt(OrchestrationPrompt);
+    return this.buildPrompt(this.promptOverride("orchestration", OrchestrationPrompt));
   }
 
   public async planningInstruction(): Promise<string> {
-    return this.buildPrompt(PlanningPrompt);
+    return this.buildPrompt(this.promptOverride("planning", PlanningPrompt));
   }
 
   public executionInstruction(): string {
-    return ExecutionPrompt;
+    return this.promptOverride("execution", ExecutionPrompt);
+  }
+
+  public promptOverride(key: PromptOverrideKey, fallback: string): string {
+    const value = this.settingsService.settings.promptOverrides?.[key]?.trim();
+    return value ? value : fallback;
   }
 
   private async buildPrompt(basePrompt: string): Promise<string> {

@@ -9,7 +9,7 @@ import Spinner from "Components/Spinner.svelte";
 import { mount } from "svelte";
 import { ApplyTemplatePrompt } from "AIPrompts/QuickActionPrompts/ApplyTemplatePrompt";
 import { Copy } from "Enums/Copy";
-import type { SettingsService, ICustomSkill, IOpenClawModelSelection } from "../SettingsService";
+import type { SettingsService, ICustomSkill, IOpenClawModelSelection, PromptOverrideKey } from "../SettingsService";
 import { openPluginSettings, replaceCopy, splitFrontmatter } from "Helpers/Helpers";
 import { mergeFrontmatterFields, mergeListIntoFrontmatter, parseFrontmatterYaml } from "Helpers/FrontmatterHelpers";
 import { ProofreadPrompt } from "AIPrompts/QuickActionPrompts/ProofreadPrompt";
@@ -53,7 +53,7 @@ export class QuickActionsDefinitionsService {
             const notice = this.showNotice(Copy.QuickActionProofreading);
             try {
                 if (selection.length > 0) {
-                    const result = await this.performAction(ProofreadPrompt, selection, modelSelection);
+                    const result = await this.performAction(this.prompt("builtin-proofread", ProofreadPrompt), selection, modelSelection);
                     if (result) {
                         await this.fileSystemService.patchFile(file, [selection], [result], false, false);
                     }
@@ -62,7 +62,7 @@ export class QuickActionsDefinitionsService {
                     if (body.trim() === "") {
                         return;
                     }
-                    const result = await this.performAction(ProofreadPrompt, body, modelSelection);
+                    const result = await this.performAction(this.prompt("builtin-proofread", ProofreadPrompt), body, modelSelection);
                     if (result) {
                         await this.fileSystemService.patchFile(file, [body], [result], false, false);
                     }
@@ -90,7 +90,7 @@ export class QuickActionsDefinitionsService {
             const notice = this.showNotice(Copy.QuickActionBeautifying);
             try {
                 if (selection.length > 0) {
-                    const result = await this.performAction(BeautifyPrompt, selection, modelSelection);
+                    const result = await this.performAction(this.prompt("builtin-beautify", BeautifyPrompt), selection, modelSelection);
                     if (result) {
                         await this.fileSystemService.patchFile(file, [selection], [result], false, false);
                     }
@@ -99,7 +99,7 @@ export class QuickActionsDefinitionsService {
                     if (body.trim() === "") {
                         return;
                     }
-                    const result = await this.performAction(BeautifyPrompt, body, modelSelection);
+                    const result = await this.performAction(this.prompt("builtin-beautify", BeautifyPrompt), body, modelSelection);
                     if (result) {
                         await this.fileSystemService.patchFile(file, [body], [result], false, false);
                     }
@@ -133,7 +133,7 @@ export class QuickActionsDefinitionsService {
                     return; // Either an excluded file or the template is empty
                 }
 
-                const prompt = replaceCopy(ApplyTemplatePrompt,
+                const prompt = replaceCopy(this.prompt("builtin-apply-template", ApplyTemplatePrompt),
                     [
                         new Date(file.stat.ctime).toString(),
                         new Date(file.stat.mtime).toString(),
@@ -170,7 +170,7 @@ export class QuickActionsDefinitionsService {
             }
 
             const links = this.vaultcacheService.wikiLinks.links.join("\n");
-            const prompt = replaceCopy(ApplyLinksPrompt, [links]);
+            const prompt = replaceCopy(this.prompt("builtin-apply-links", ApplyLinksPrompt), [links]);
 
             const notice = this.showNotice(Copy.QuickActionApplyingLinks);
             try {
@@ -214,7 +214,7 @@ export class QuickActionsDefinitionsService {
             }
 
             const allowedTags = this.vaultcacheService.tags;
-            const prompt = replaceCopy(ApplyTagsPrompt, [Array.from(allowedTags).join("\n")]);
+            const prompt = replaceCopy(this.prompt("builtin-apply-tags", ApplyTagsPrompt), [Array.from(allowedTags).join("\n")]);
 
             const notice = this.showNotice(Copy.QuickActionApplyingTags);
             try {
@@ -262,7 +262,7 @@ export class QuickActionsDefinitionsService {
             }
 
             const availableTags = this.vaultcacheService.tags;
-            const prompt = replaceCopy(SuggestTagsPrompt, [Array.from(availableTags).join("\n")]);
+            const prompt = replaceCopy(this.prompt("builtin-suggest-tags", SuggestTagsPrompt), [Array.from(availableTags).join("\n")]);
 
             const notice = this.showNotice(Copy.QuickActionSuggestingTags);
             try {
@@ -310,7 +310,7 @@ export class QuickActionsDefinitionsService {
             }
 
             const availableTags = this.vaultcacheService.tags;
-            const prompt = replaceCopy(GenerateFrontmatterPrompt,
+            const prompt = replaceCopy(this.prompt("builtin-generate-frontmatter", GenerateFrontmatterPrompt),
                 [
                     Array.from(availableTags).join("\n"),
                     new Date(file.stat.ctime).toString(),
@@ -421,6 +421,11 @@ export class QuickActionsDefinitionsService {
         const agent = Resolve<QuickAgent>(Services.QuickAgent);
         agent.resolveAIProvider();
         return agent.quickAction(action, context, modelSelection);
+    }
+
+    private prompt(key: PromptOverrideKey, fallback: string): string {
+        const value = this.settingsService.settings.promptOverrides?.[key]?.trim();
+        return value ? value : fallback;
     }
 
     private showNotice(message: string, durationMs: number = 0): Notice {

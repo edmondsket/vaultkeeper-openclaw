@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS: IVaultkeeperAISettings = {
     openClawMainSelection: undefined,
     openClawPlanningSelection: undefined,
     openClawQuickActionSelection: undefined,
+    promptOverrides: {},
     
     apiKeys: {
         claude: "",
@@ -95,6 +96,20 @@ export interface IBuiltInSkillSetting {
     pinned?: boolean;
 }
 
+export type PromptOverrideKey =
+    | "mainSystem"
+    | "planning"
+    | "orchestration"
+    | "execution"
+    | "quickActionBase"
+    | "builtin-proofread"
+    | "builtin-beautify"
+    | "builtin-apply-template"
+    | "builtin-apply-links"
+    | "builtin-apply-tags"
+    | "builtin-suggest-tags"
+    | "builtin-generate-frontmatter";
+
 export interface IVaultkeeperAISettings {
     firstTimeStart: boolean;
     displayLanguage?: DisplayLanguage;
@@ -117,6 +132,7 @@ export interface IVaultkeeperAISettings {
     openClawMainSelection?: IOpenClawModelSelection;
     openClawPlanningSelection?: IOpenClawModelSelection;
     openClawQuickActionSelection?: IOpenClawModelSelection;
+    promptOverrides?: Partial<Record<PromptOverrideKey, string>>;
 
     apiKeys: {
         claude: string;
