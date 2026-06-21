@@ -39,6 +39,14 @@ export default class VaultkeeperAIPlugin extends Plugin {
 			}
 		});
 
+		this.addCommand({
+			id: "background-clipping",
+			name: "Background clipping",
+			callback: () => {
+				Resolve<import("Modals/ClippingModal").ClippingModal>(Services.ClippingModal).open();
+			}
+		});
+
 		const assetsService = Resolve<AssetsService>(Services.AssetsService);
 		this.addRibbonIcon(assetsService.pluginIcon, "Vaultkeeper OpenClaw", async () => {
 			await this.activateMainView();

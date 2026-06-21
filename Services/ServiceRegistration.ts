@@ -37,6 +37,7 @@ import { SearchStateStore } from "Stores/SearchStateStore";
 // Modals
 import { ConversationHistoryModal } from "Modals/ConversationHistoryModal";
 import { HelpModal } from "Modals/HelpModal";
+import { ClippingModal } from "Modals/ClippingModal";
 
 // AI Classes
 import type { IAIClass } from "AIClasses/IAIClass";
@@ -63,6 +64,7 @@ import { QuickActionsService } from "./QuickActions/QuickActionsService";
 import { CustomSkillService } from "./CustomSkills/CustomSkillService";
 import { S3FileService } from "./S3Storage/S3FileService";
 import { DocumentMediaService } from "./DocumentMediaService";
+import { ClippingJobService } from "./ClippingJobService";
 
 
 
@@ -97,6 +99,7 @@ export function RegisterDependencies() {
     RegisterSingleton<QuickActionsService>(Services.QuickActionsService, new QuickActionsService());
     RegisterSingleton<S3FileService>(Services.S3FileService, new S3FileService());
     RegisterSingleton<DocumentMediaService>(Services.DocumentMediaService, new DocumentMediaService());
+    RegisterSingleton<ClippingJobService>(Services.ClippingJobService, new ClippingJobService());
 
     
     RegisterTransient<WebViewerService>(Services.WebViewerService, () => new WebViewerService());
@@ -147,5 +150,6 @@ export function RegisterAiProvider() {
 
 function RegisterModals() {
     RegisterTransient<ConversationHistoryModal>(Services.ConversationHistoryModal, () => new ConversationHistoryModal());
-    RegisterTransient<HelpModal>(Services.HelpModal, () => new HelpModal())
+    RegisterTransient<HelpModal>(Services.HelpModal, () => new HelpModal());
+    RegisterTransient<ClippingModal>(Services.ClippingModal, () => new ClippingModal());
 }

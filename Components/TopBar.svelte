@@ -10,6 +10,7 @@
 	import type { ChatService } from "Services/ChatService";
 	import { fade } from "svelte/transition";
 	import type { HelpModal } from "Modals/HelpModal";
+	import type { ClippingModal } from "Modals/ClippingModal";
 	import { Copy } from "Enums/Copy";
 	import { replaceCopy } from "Helpers/Helpers";
 
@@ -54,6 +55,10 @@
     modal.open();
   }
 
+  function openClippingModal() {
+    Resolve<ClippingModal>(Services.ClippingModal).open();
+  }
+
   function openSettings() {
     openPluginSettings(plugin);
   }
@@ -70,6 +75,7 @@
   let newConversationButton: HTMLButtonElement;
   let deleteConversationButton: HTMLButtonElement;
   let conversationHistoryButton: HTMLButtonElement;
+  let clippingButton: HTMLButtonElement;
   let settingsButton: HTMLButtonElement;
   let helpMenuButton: HTMLButtonElement;
   let closeButton: HTMLButtonElement;
@@ -82,6 +88,9 @@
   }
   $: if (conversationHistoryButton) {
     setIcon(conversationHistoryButton, "messages-square");
+  }
+  $: if (clippingButton) {
+    setIcon(clippingButton, "archive");
   }
   $: if (settingsButton) {
     setIcon(settingsButton, "settings");
@@ -116,6 +125,13 @@
       class="top-bar-button clickable-icon"
       on:click={() => openConversationHistory()}
       aria-label={Copy.ButtonConversationHistory}
+    ></button>
+    <button
+      bind:this={clippingButton}
+      id="clipping-button"
+      class="top-bar-button clickable-icon"
+      on:click={openClippingModal}
+      aria-label={Copy.ButtonClipping}
     ></button>
     <div id="conversation-divider-1" class="top-bar-divider"></div>
     <button
@@ -162,13 +178,13 @@
     grid-column: 2;
     display: grid;
     grid-template-rows: auto;
-    grid-template-columns: var(--size-4-2) auto auto auto auto auto auto auto 1fr 0.1fr auto var(--size-4-2);
+    grid-template-columns: var(--size-4-2) auto auto auto auto auto auto auto auto 1fr 0.1fr auto var(--size-4-2);
     background-color: var(--background-secondary-alt);
     border-radius: var(--radius-m);
   }
 
   :global(.is-mobile) .top-bar-content {
-    grid-template-columns: var(--size-4-1) auto auto auto auto auto auto auto 1fr 0fr auto var(--size-4-1);
+    grid-template-columns: var(--size-4-1) auto auto auto auto auto auto auto auto 1fr 0fr auto var(--size-4-1);
   }
 
   .top-bar-divider {
@@ -197,31 +213,36 @@
     grid-column: 4;
   }
 
-  #conversation-divider-1 {
+  #clipping-button {
     grid-row: 1;
     grid-column: 5;
+  }
+
+  #conversation-divider-1 {
+    grid-row: 1;
+    grid-column: 6;
     margin: 0 5px;
   }
 
   #settings-button {
     grid-row: 1;
-    grid-column: 6;
+    grid-column: 7;
   }
 
   #help-menu-button {
     grid-row: 1;
-    grid-column: 7;
+    grid-column: 8;
   }
 
   #conversation-divider-2 {
     grid-row: 1;
-    grid-column: 8;
+    grid-column: 9;
     margin: 0 5px;
   }
 
   #conversation-title {
     grid-row: 1;
-    grid-column: 9;
+    grid-column: 10;
     display: inline-block;
     align-self: center;
     white-space: nowrap;
@@ -233,6 +254,6 @@
 
   #close-button {
     grid-row: 1;
-    grid-column: 11;
+    grid-column: 12;
   }
 </style>

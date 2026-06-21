@@ -47,6 +47,10 @@ export abstract class BaseAgent {
         this.ai = Resolve<IAIClass>(Services.IAIClass);
     }
 
+    public useAIProvider(ai: IAIClass) {
+        this.ai = ai;
+    }
+
     public setSaveCallback(callback: (conversation: Conversation) => Promise<void>) {
         this.onSaveConversation = callback;
     }

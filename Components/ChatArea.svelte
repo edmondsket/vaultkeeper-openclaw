@@ -287,33 +287,34 @@
 
     <div class="chat-area-padding" bind:this={chatAreaPaddingElement} style:user-select=none></div>
 
-    {#if messages.length === 0}
-      <div class="conversation-empty-state">
-        <div class="typing-in">{getGreetingByTime()}</div>
-        {#if pinnedChatSkills.length > 0}
-          <div class="pinned-chat-skills" aria-label={Copy.SettingSkillPinned}>
-            {#each pinnedChatSkills as skill, index}
-              <button
-                class:selected={selectedSkillId === skill.id}
-                class="pinned-chat-skill"
-                type="button"
-                on:mousedown|preventDefault={() => onSkillSelect(skill.id)}
-                on:click={() => onSkillSelect(skill.id)}
-                title={skill.prompt}
-              >
-                <span class="pinned-chat-skill-icon" bind:this={pinnedSkillIconElements[index]}></span>
-                <span>{skill.name}</span>
-                {#if selectedSkillId === skill.id}
-                  <span class="pinned-chat-skill-selected-label">{Copy.SettingSkillSelected}</span>
-                {/if}
-              </button>
-            {/each}
-          </div>
-        {/if}
-      </div>
-    {/if}
-
   </div>
+
+  {#if messages.length === 0}
+    <div class="conversation-empty-state">
+      <div class="typing-in">{getGreetingByTime()}</div>
+      {#if pinnedChatSkills.length > 0}
+        <div class="pinned-chat-skills" aria-label={Copy.SettingSkillPinned}>
+          {#each pinnedChatSkills as skill, index}
+            <button
+              class:selected={selectedSkillId === skill.id}
+              class="pinned-chat-skill"
+              type="button"
+              on:mousedown|preventDefault={() => onSkillSelect(skill.id)}
+              on:click={() => onSkillSelect(skill.id)}
+              on:keydown={(event) => (event.key === "Enter" || event.key === " ") && onSkillSelect(skill.id)}
+              title={skill.prompt}
+            >
+              <span class="pinned-chat-skill-icon" bind:this={pinnedSkillIconElements[index]}></span>
+              <span>{skill.name}</span>
+              {#if selectedSkillId === skill.id}
+                <span class="pinned-chat-skill-selected-label">{Copy.SettingSkillSelected}</span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  {/if}
 
   {#if messages.length > 0}
     <div class="bottom-fade"></div>
@@ -450,9 +451,14 @@
   }
   
   .conversation-empty-state {
-    position: relative;
-    z-index: 2;
-    margin: auto;
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -476,6 +482,7 @@
   .pinned-chat-skills {
     position: relative;
     z-index: 3;
+    pointer-events: auto;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -487,6 +494,7 @@
   .pinned-chat-skill {
     position: relative;
     z-index: 4;
+    pointer-events: auto;
     display: inline-flex;
     align-items: center;
     gap: var(--size-2-2);

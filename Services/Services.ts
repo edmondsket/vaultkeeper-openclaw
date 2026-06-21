@@ -17,6 +17,7 @@ export class Services {
     static CustomSkillService = Symbol("CustomSkillService");
     static S3FileService = Symbol("S3FileService");
     static DocumentMediaService = Symbol("DocumentMediaService");
+    static ClippingJobService = Symbol("ClippingJobService");
     static StreamingService = Symbol("StreamingService");
     static MarkdownService = Symbol("MarkdownService");
     static StreamingMarkdownService = Symbol("StreamingMarkdownService");
@@ -44,4 +45,5 @@ export class Services {
     // modals
     static ConversationHistoryModal = Symbol("ConversationHistoryModal");
     static HelpModal = Symbol("HelpModal");
+    static ClippingModal = Symbol("ClippingModal");
 }

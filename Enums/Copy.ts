@@ -181,6 +181,7 @@ export enum EnglishCopy {
     ButtonNewConversation = "New Conversation",
     ButtonDeleteConversation = "Delete Conversation",
     ButtonConversationHistory = "Conversation History",
+    ButtonClipping = "Background clipping",
     ButtonSettings = "Vaultkeeper OpenClaw Settings",
     ButtonHelp = "Help",
     ButtonClosePlugin = "Close Vaultkeeper OpenClaw",
@@ -224,6 +225,17 @@ export enum EnglishCopy {
 
     // Agent file message
     AttachedFile = `The file {fileName} is attached and its full contents follow below. This is the actual content of the file — read it directly to answer the user. This attachment may be a file the user uploaded to the chat, or a vault file you retrieved with a tool; either way, the content below is authoritative and you do NOT need to read or fetch this file again.`,
+
+    ClippingModalTitle = "Background clipping",
+    ClippingModalDesc = "Paste one or more URLs. Vaultkeeper will create placeholder notes in Inbox and clip them in the background.",
+    ClippingModalInput = "URLs or text",
+    ClippingModalInputDesc = "You can paste a single URL, multiple URLs, or text containing URLs.",
+    ClippingModalSubmit = "Start clipping",
+    ClippingNoUrlFound = "No URL found.",
+    ClippingQueued = "Queued {0} clipping task(s).",
+    ClippingComplete = "Clipping complete: {0}",
+    ClippingFailed = "Clipping failed: {0}",
+    ClippingConversationDisplay = "Background clipping: {0}",
 
     // Execution Plan Messages
     PlanningFailedError = `Failed to generate plan. You should attempt to recover from this.
