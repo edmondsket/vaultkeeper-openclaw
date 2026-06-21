@@ -285,7 +285,7 @@
       <StreamingIndicator bind:streamingIndicatorElement={streamingIndicatorElement}/>
     {/if}
 
-    <div bind:this={chatAreaPaddingElement} style:user-select=none></div>
+    <div class="chat-area-padding" bind:this={chatAreaPaddingElement} style:user-select=none></div>
 
     {#if messages.length === 0}
       <div class="conversation-empty-state">
@@ -297,6 +297,7 @@
                 class:selected={selectedSkillId === skill.id}
                 class="pinned-chat-skill"
                 type="button"
+                on:mousedown|preventDefault={() => onSkillSelect(skill.id)}
                 on:click={() => onSkillSelect(skill.id)}
                 title={skill.prompt}
               >
@@ -449,6 +450,8 @@
   }
   
   .conversation-empty-state {
+    position: relative;
+    z-index: 2;
     margin: auto;
     width: 100%;
     max-width: 100%;
@@ -471,6 +474,8 @@
   }
 
   .pinned-chat-skills {
+    position: relative;
+    z-index: 3;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -480,6 +485,8 @@
   }
 
   .pinned-chat-skill {
+    position: relative;
+    z-index: 4;
     display: inline-flex;
     align-items: center;
     gap: var(--size-2-2);
@@ -491,6 +498,10 @@
     box-shadow: 0 1px 4px color-mix(in srgb, var(--background-modifier-box-shadow) 35%, transparent);
     cursor: pointer;
     max-width: 100%;
+  }
+
+  .chat-area-padding {
+    pointer-events: none;
   }
 
   .pinned-chat-skill.selected {
