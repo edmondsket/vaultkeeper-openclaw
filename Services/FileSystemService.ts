@@ -40,6 +40,10 @@ export class FileSystemService {
         return Exception.new(`Path is a folder, not a file: ${filePath}`);
     }
 
+    public async readRawTextFile(filePath: string, allowAccessToPluginRoot: boolean = false): Promise<string | Error> {
+        return await this.vaultService.readRawText(filePath, allowAccessToPluginRoot);
+    }
+
     public async readBinaryFile(filePath: string, allowAccessToPluginRoot: boolean = false): Promise<ArrayBuffer | Error> {
         const file: TAbstractFile | null = this.vaultService.getAbstractFileByPath(filePath, allowAccessToPluginRoot);
         if (file == null) {

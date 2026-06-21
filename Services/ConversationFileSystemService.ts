@@ -310,7 +310,7 @@ export class ConversationFileSystemService {
             .map(async file => {
             try {
                 const content = await Promise.race([
-                    this.fileSystemService.readFilePath(file.path, true),
+                    this.fileSystemService.readRawTextFile(file.path, true),
                     new Promise<Error>(resolve => window.setTimeout(
                         () => resolve(Exception.new(`Timed out reading conversation summary: ${file.path}`)),
                         ConversationFileSystemService.SUMMARY_READ_TIMEOUT_MS

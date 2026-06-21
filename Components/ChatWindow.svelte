@@ -61,6 +61,7 @@
     if (chatContainer) {
       plugin.registerDomEvent(chatContainer, 'click', handleLinkClick);
     }
+    void conversationService.getConversationSummaries();
   });
 
   async function handleLinkClick(evt: MouseEvent) {

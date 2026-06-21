@@ -580,8 +580,10 @@
 
 <div id="input-container" class:stacked class:compact bind:this={inputContainerElement}>
   <div id="input-display-container" style:padding-top={attachments.length > 0 ? "var(--size-4-2)" : 0}>
+    <div id="chat-selectors-row">
     <ChatModelSelector disabled={isSubmitting || inputMode !== InputMode.Normal}/>
     <ChatSkillSelector bind:selectedSkillId disabled={isSubmitting || inputMode !== InputMode.Normal}/>
+    </div>
     <InputDisplay bind:this={inputDisplay}/>
   </div>
 
@@ -695,6 +697,14 @@
   #input-display-container {
     grid-row: 1;
     grid-column: 2 / 13;
+  }
+
+  #chat-selectors-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--size-4-2);
+    padding: var(--size-2-2) var(--size-2-2) 0;
   }
 
   #input-attachments-container {
@@ -958,6 +968,10 @@
     #input-container {
       grid-template-rows: auto auto auto auto auto var(--size-4-3) minmax(3.25rem, auto) var(--size-4-2) auto var(--size-4-3);
       grid-template-columns: var(--size-4-3) auto var(--size-4-2) auto 1fr auto var(--size-4-2) auto var(--size-4-2) auto var(--size-4-3);
+    }
+
+    #chat-selectors-row {
+      gap: var(--size-2-2);
     }
 
     #input-display-container,

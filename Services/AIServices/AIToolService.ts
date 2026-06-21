@@ -344,12 +344,15 @@ export class AIToolService {
 
     private async writeVaultFile(filePath: string, content: string): Promise<AIToolResponsePayload> {
         const prepared = await this.documentMediaService.prepareMarkdown(content);
-        const result = await this.fileSystemService.writeToFilePath(normalizePath(filePath), prepared.content);
+        const normalizedPath = normalizePath(filePath);
+        const result = await this.fileSystemService.writeToFilePath(normalizedPath, prepared.content);
         if (result instanceof Error) {
             return new AIToolResponsePayload({ success: false, error: result.message });
         }
         return new AIToolResponsePayload({
             success: true,
+            file_path: normalizedPath,
+            message: `File written successfully at '${normalizedPath}'. Do not create another copy of the same content unless the user explicitly asks for a duplicate. If the user's request is now complete, respond with a concise completion summary instead of calling write_vault_file again.`,
             image_replacements: prepared.replacements,
             unreplaced_image_placeholders: prepared.remainingPlaceholders
         });

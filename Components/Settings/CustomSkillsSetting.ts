@@ -1,5 +1,5 @@
 declare const app: import("obsidian").App;
-import { Setting, Modal, ButtonComponent, DropdownComponent, TextComponent, TextAreaComponent, ToggleComponent, Notice } from "obsidian";
+import { Setting, Modal, setIcon } from "obsidian";
 import { Copy } from "Enums/Copy";
 import type { SettingsService, ICustomSkill, IOpenClawModelSelection } from "Services/SettingsService";
 import type { CustomSkillService } from "Services/CustomSkills/CustomSkillService";
@@ -48,8 +48,13 @@ export class CustomSkillsSetting {
     }
 
     private renderSkillItem(containerEl: HTMLElement, skill: ICustomSkill) {
+        const nameFragment = createFragment();
+        const iconEl = nameFragment.createSpan({ cls: "vaultkeeper-skill-setting-icon" });
+        setIcon(iconEl, skill.icon || "wand");
+        nameFragment.createSpan({ text: skill.builtIn ? `${skill.name} · ${Copy.SettingBuiltInSkill}` : skill.name });
+
         const setting = new Setting(containerEl)
-            .setName(skill.builtIn ? `${skill.name} · ${Copy.SettingBuiltInSkill}` : skill.name)
+            .setName(nameFragment)
             .setDesc(skill.builtIn ? Copy.SettingBuiltInSkillNotEditable : skill.prompt.substring(0, 50) + "...")
             .addToggle(toggle => toggle
                 .setValue(skill.enabled)
@@ -169,6 +174,7 @@ class SkillEditModal extends Modal {
         let iconValue = this.skill?.icon ?? "wand";
         new Setting(contentEl)
             .setName(Copy.SettingSkillIcon)
+            .setDesc(Copy.SettingSkillIconDesc)
             .addText(text => text
                 .setValue(iconValue)
                 .onChange(value => { iconValue = value; }));

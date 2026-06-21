@@ -105,6 +105,20 @@ export class VaultService {
         return await this.vault.read(file);
     }
 
+    public async readRawText(filePath: string, allowAccessToPluginRoot: boolean = false): Promise<string | Error> {
+        filePath = this.sanitiserService.sanitize(filePath);
+        if (this.isExclusion(filePath, allowAccessToPluginRoot)) {
+            Exception.log(`Plugin attempted to read a file that is in the exclusions list: ${filePath}`);
+            return Exception.new(`File does not exist: ${filePath}`);
+        }
+        try {
+            return await this.vault.adapter.read(filePath);
+        } catch (error) {
+            Exception.log(error);
+            return Exception.new(error);
+        }
+    }
+
     public async readBinaryData(file: TFile, allowAccessToPluginRoot: boolean = false): Promise<ArrayBuffer | null> {
         const filePath = this.sanitiserService.sanitize(file.path);
         if (this.isExclusion(filePath, allowAccessToPluginRoot)) {

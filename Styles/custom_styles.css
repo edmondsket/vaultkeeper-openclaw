@@ -543,6 +543,14 @@ body {
   vertical-align: super;
 }
 
+.vaultkeeper-skill-setting-icon {
+  display: inline-flex;
+  width: 1em;
+  height: 1em;
+  margin-right: var(--size-2-2);
+  vertical-align: -0.15em;
+}
+
 
 /* Definition lists */
 .message-bubble.assistant dl {

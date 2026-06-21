@@ -25,6 +25,15 @@
   export let selectedSkillId = "";
   export let onSkillSelect: (skillId: string) => void = () => {};
 
+  let pinnedSkillIconElements: (HTMLSpanElement | null)[] = [];
+
+  $: if (pinnedChatSkills.length > 0) {
+    pinnedChatSkills.forEach((skill, index) => {
+      const iconEl = pinnedSkillIconElements[index];
+      if (iconEl) setIcon(iconEl, skill.icon || "wand");
+    });
+  }
+
   export function resetChatArea() {
     messageElements = [];
     if (chatAreaPaddingElement) {
@@ -283,7 +292,7 @@
         <div class="typing-in">{getGreetingByTime()}</div>
         {#if pinnedChatSkills.length > 0}
           <div class="pinned-chat-skills" aria-label={Copy.SettingSkillPinned}>
-            {#each pinnedChatSkills as skill}
+            {#each pinnedChatSkills as skill, index}
               <button
                 class:selected={selectedSkillId === skill.id}
                 class="pinned-chat-skill"
@@ -291,7 +300,11 @@
                 on:click={() => onSkillSelect(skill.id)}
                 title={skill.prompt}
               >
+                <span class="pinned-chat-skill-icon" bind:this={pinnedSkillIconElements[index]}></span>
                 <span>{skill.name}</span>
+                {#if selectedSkillId === skill.id}
+                  <span class="pinned-chat-skill-selected-label">{Copy.SettingSkillSelected}</span>
+                {/if}
               </button>
             {/each}
           </div>
@@ -467,6 +480,9 @@
   }
 
   .pinned-chat-skill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-2-2);
     border: var(--border-width) solid var(--background-modifier-border);
     border-radius: var(--radius-m);
     background: var(--background-primary);
@@ -479,14 +495,30 @@
 
   .pinned-chat-skill.selected {
     border-color: var(--interactive-accent);
+    background: color-mix(in srgb, var(--interactive-accent) 14%, var(--background-primary));
+    color: var(--text-normal);
     box-shadow: 0 0 0 1px var(--interactive-accent);
   }
 
-  .pinned-chat-skill span {
+  .pinned-chat-skill-icon {
+    display: inline-flex;
+    width: 1em;
+    height: 1em;
+    flex: 0 0 auto;
+  }
+
+  .pinned-chat-skill span:not(.pinned-chat-skill-icon):not(.pinned-chat-skill-selected-label) {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .pinned-chat-skill-selected-label {
+    flex: 0 0 auto;
+    color: var(--interactive-accent);
+    font-size: var(--font-ui-smallest);
+    font-style: normal;
   }
 
   @container vaultkeeper-chat (max-width: 620px) {
